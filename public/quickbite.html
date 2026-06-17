@@ -823,6 +823,7 @@ let _tt;
 function T(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>t.classList.remove('show'),2500)}
 
 rg(R.filter(x=>x.km<=8),'hgrid');
+function continueWithGoogle(){T('Continuing with Google...');setTimeout(()=>{if(typeof go==='function'){go('home-screen')}},900)}
 </script>
 </body>
 </html>
