@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, Star, Clock, Plus } from "lucide-react";
 import { MobileShell } from "@/components/MobileShell";
-import { findRestaurant } from "@/lib/data";
+import { findRestaurant, type Dish } from "@/lib/data";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
 
@@ -61,7 +61,7 @@ function RestaurantPage() {
 
         <h2 className="mt-6 font-bold text-slate-800">Menu</h2>
         <div className="mt-3 space-y-3">
-          {r.dishes.map((d) => (
+          {r.dishes.map((d: Dish) => (
             <div key={d.id} className="flex items-center gap-3 bg-white/90 rounded-2xl p-3 shadow-sm">
               <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-slate-100 to-slate-50 flex items-center justify-center text-3xl">
                 {d.emoji}
