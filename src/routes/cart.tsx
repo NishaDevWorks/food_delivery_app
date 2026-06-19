@@ -1,8 +1,16 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag, Smartphone, CreditCard, Wallet, Banknote, Check } from "lucide-react";
 import { MobileShell } from "@/components/MobileShell";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({
@@ -11,27 +19,52 @@ export const Route = createFileRoute("/cart")({
   component: CartPage,
 });
 
+const PAYMENT_METHODS = [
+  { id: "upi", label: "UPI", desc: "Google Pay, PhonePe, Paytm", Icon: Smartphone },
+  { id: "card", label: "Credit / Debit Card", desc: "Visa, Mastercard, Rupay", Icon: CreditCard },
+  { id: "wallet", label: "Wallet", desc: "Paytm, Amazon Pay", Icon: Wallet },
+  { id: "cod", label: "Cash on Delivery", desc: "Pay when it arrives", Icon: Banknote },
+] as const;
+
 function CartPage() {
   const { items, setQty, remove, total, clear } = useCart();
   const navigate = useNavigate();
   const deliveryFee = items.length ? 30 : 0;
   const grand = total + deliveryFee;
+  const [payOpen, setPayOpen] = useState(false);
+  const [method, setMethod] = useState<string>("upi");
+  const [paying, setPaying] = useState(false);
 
-  function placeOrder() {
+  function openPayment() {
     if (!items.length) return;
-    try {
-      localStorage.setItem(
-        "quickbite_active_order",
-        JSON.stringify({
-          items,
-          total: grand,
-          placedAt: Date.now(),
-        }),
+    setPayOpen(true);
+  }
+
+  function confirmPayment() {
+    setPaying(true);
+    const chosen = PAYMENT_METHODS.find((m) => m.id === method);
+    setTimeout(() => {
+      try {
+        localStorage.setItem(
+          "quickbite_active_order",
+          JSON.stringify({
+            items,
+            total: grand,
+            placedAt: Date.now(),
+            paymentMethod: chosen?.label ?? "UPI",
+          }),
+        );
+      } catch {}
+      clear();
+      setPaying(false);
+      setPayOpen(false);
+      toast.success(
+        method === "cod"
+          ? "Order placed! Pay cash on delivery."
+          : `Paid via ${chosen?.label}. Tracking your courier…`,
       );
-    } catch {}
-    clear();
-    toast.success("Order placed! Tracking your courier…");
-    navigate({ to: "/track" });
+      navigate({ to: "/track" });
+    }, 900);
   }
 
   return (
@@ -97,7 +130,7 @@ function CartPage() {
             </div>
 
             <button
-              onClick={placeOrder}
+              onClick={openPayment}
               className="mt-5 w-full h-14 rounded-2xl bg-gradient-to-r from-violet-500 to-pink-500 text-white font-bold shadow-lg shadow-pink-200 active:scale-[0.98] transition"
             >
               Place order · ₹{grand}
@@ -105,6 +138,45 @@ function CartPage() {
           </>
         )}
       </div>
+
+      <Dialog open={payOpen} onOpenChange={setPayOpen}>
+        <DialogContent className="sm:max-w-[420px] rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black text-slate-900">Choose payment</DialogTitle>
+            <DialogDescription>Select how you'd like to pay ₹{grand}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 mt-2">
+            {PAYMENT_METHODS.map(({ id, label, desc, Icon }) => {
+              const active = method === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => setMethod(id)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-2xl border-2 transition text-left ${
+                    active ? "border-violet-500 bg-violet-50" : "border-slate-200 bg-white"
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${active ? "bg-gradient-to-br from-violet-500 to-pink-500 text-white" : "bg-slate-100 text-slate-600"}`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm text-slate-800">{label}</p>
+                    <p className="text-[11px] text-slate-500 truncate">{desc}</p>
+                  </div>
+                  {active && <Check className="w-5 h-5 text-violet-600" />}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            onClick={confirmPayment}
+            disabled={paying}
+            className="mt-3 w-full h-13 py-3.5 rounded-2xl bg-gradient-to-r from-violet-500 to-pink-500 text-white font-bold shadow-lg shadow-pink-200 active:scale-[0.98] transition disabled:opacity-60"
+          >
+            {paying ? "Processing…" : method === "cod" ? `Confirm order · ₹${grand}` : `Pay ₹${grand}`}
+          </button>
+        </DialogContent>
+      </Dialog>
     </MobileShell>
   );
 }
