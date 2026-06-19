@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { UtensilsCrossed } from "lucide-react";
+import { useEffect, useState } from "react";
+import { UtensilsCrossed, MapPin } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -13,14 +14,51 @@ export const Route = createFileRoute("/")({
   component: LoginPage,
 });
 
+const LOC_KEY = "quickbite_location_asked";
+
 function LoginPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [locStatus, setLocStatus] = useState<"idle" | "granted" | "denied">("idle");
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("geolocation" in navigator)) return;
+    if (localStorage.getItem(LOC_KEY)) return;
+    const t = setTimeout(() => requestLocation(), 400);
+    return () => clearTimeout(t);
+  }, []);
+
+  function requestLocation() {
+    if (!("geolocation" in navigator)) {
+      toast.error("Location not supported on this device");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        try {
+          localStorage.setItem(LOC_KEY, "1");
+          localStorage.setItem(
+            "quickbite_location",
+            JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+          );
+        } catch {}
+        setLocStatus("granted");
+        toast.success("Location enabled — finding spots near you");
+      },
+      () => {
+        try { localStorage.setItem(LOC_KEY, "1"); } catch {}
+        setLocStatus("denied");
+        toast.error("Location denied — using default area");
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
 
   function continueWithGoogle() {
     setLoading(true);
     setTimeout(() => navigate({ to: "/home" }), 900);
   }
+
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-violet-200 via-pink-100 to-sky-200 flex items-center justify-center p-0 sm:p-6">
@@ -37,7 +75,22 @@ function LoginPage() {
           </p>
         </div>
 
-        <div className="w-full space-y-4">
+        <div className="w-full space-y-3">
+          <button
+            onClick={requestLocation}
+            className={`w-full h-12 rounded-2xl font-semibold flex items-center justify-center gap-2 transition ${
+              locStatus === "granted"
+                ? "bg-emerald-100 text-emerald-700"
+                : "bg-white/80 text-slate-700 border border-slate-200"
+            }`}
+          >
+            <MapPin className="w-4 h-4" />
+            {locStatus === "granted"
+              ? "Location enabled"
+              : locStatus === "denied"
+              ? "Enable location"
+              : "Use my location"}
+          </button>
           <button
             onClick={continueWithGoogle}
             disabled={loading}
@@ -50,6 +103,7 @@ function LoginPage() {
             By continuing you agree to our Terms & Privacy.
           </p>
         </div>
+
       </div>
     </div>
   );
