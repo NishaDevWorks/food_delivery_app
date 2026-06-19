@@ -1,6 +1,6 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { Home, ShoppingBag, MapPin, User, type LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useCart } from "@/lib/cart";
 
 export function MobileShell({
@@ -10,6 +10,13 @@ export function MobileShell({
   children: ReactNode;
   hideNav?: boolean;
 }) {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!localStorage.getItem("quickbite_user")) {
+      navigate({ to: "/" });
+    }
+  }, [navigate]);
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-violet-100 via-pink-50 to-sky-100 flex items-center justify-center p-0 sm:p-6">
       <div className="relative w-full sm:max-w-[420px] sm:rounded-[36px] sm:shadow-2xl bg-white/80 backdrop-blur-xl min-h-screen sm:min-h-[760px] sm:max-h-[860px] overflow-hidden flex flex-col">
