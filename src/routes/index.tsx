@@ -62,6 +62,12 @@ function LoginPage() {
     );
   }
 
+  function getAccounts(): Array<{ name: string; email: string; password: string }> {
+    try { return JSON.parse(localStorage.getItem("quickbite_accounts") || "[]"); } catch { return []; }
+  }
+  function saveAccounts(list: Array<{ name: string; email: string; password: string }>) {
+    try { localStorage.setItem("quickbite_accounts", JSON.stringify(list)); } catch {}
+  }
   function persistUser(u: { name: string; email: string }) {
     try { localStorage.setItem("quickbite_user", JSON.stringify(u)); } catch {}
   }
@@ -71,21 +77,55 @@ function LoginPage() {
       toast.error("Please fill all fields");
       return;
     }
-    setLoading(true);
-    setTimeout(() => {
-      persistUser({ name: name || email.split("@")[0], email });
-      toast.success(tab === "signin" ? "Welcome back!" : "Account created!");
-      navigate({ to: "/home" });
-    }, 700);
+    const accounts = getAccounts();
+    const existing = accounts.find((a) => a.email.toLowerCase() === email.toLowerCase());
+
+    if (tab === "signin") {
+      if (!existing) {
+        toast.error("No account found. Please sign up first.");
+        setTab("signup");
+        return;
+      }
+      if (existing.password !== password) {
+        toast.error("Incorrect password");
+        return;
+      }
+      setLoading(true);
+      setTimeout(() => {
+        persistUser({ name: existing.name, email: existing.email });
+        toast.success("Welcome back!");
+        navigate({ to: "/home" });
+      }, 500);
+    } else {
+      if (existing) {
+        toast.error("Account already exists. Please sign in.");
+        setTab("signin");
+        return;
+      }
+      setLoading(true);
+      setTimeout(() => {
+        const next = [...accounts, { name, email, password }];
+        saveAccounts(next);
+        persistUser({ name, email });
+        toast.success("Account created!");
+        navigate({ to: "/home" });
+      }, 500);
+    }
   }
 
   function continueWithGoogle() {
     setLoading(true);
     setTimeout(() => {
-      persistUser({ name: "Google User", email: "user@gmail.com" });
+      const accounts = getAccounts();
+      const gEmail = "user@gmail.com";
+      if (!accounts.find((a) => a.email === gEmail)) {
+        saveAccounts([...accounts, { name: "Google User", email: gEmail, password: "" }]);
+      }
+      persistUser({ name: "Google User", email: gEmail });
       navigate({ to: "/home" });
-    }, 700);
+    }, 500);
   }
+
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-violet-200 via-pink-100 to-sky-200 flex items-center justify-center p-0 sm:p-6">
