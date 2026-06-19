@@ -1,42 +1,51 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { UtensilsCrossed, MapPin } from "lucide-react";
+import { UtensilsCrossed, MapPin, Mail, Lock, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "QuickBite – Sign in" },
-      { name: "description", content: "Sign in to QuickBite to order food from nearby restaurants." },
+      { name: "description", content: "Sign in or sign up to QuickBite to order food from nearby restaurants." },
       { name: "viewport", content: "width=device-width, initial-scale=1.0" },
     ],
   }),
   component: LoginPage,
 });
 
-const LOC_KEY = "quickbite_location_asked";
-
 function LoginPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [tab, setTab] = useState<"signin" | "signup">("signin");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [locStatus, setLocStatus] = useState<"idle" | "granted" | "denied">("idle");
 
+  // Already signed in? Skip to home.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (localStorage.getItem("quickbite_user")) {
+      navigate({ to: "/home" });
+    }
+  }, [navigate]);
+
+  // Always ask for location on app open.
   useEffect(() => {
     if (typeof window === "undefined" || !("geolocation" in navigator)) return;
-    if (localStorage.getItem(LOC_KEY)) return;
-    const t = setTimeout(() => requestLocation(), 400);
+    const t = setTimeout(() => requestLocation(true), 500);
     return () => clearTimeout(t);
   }, []);
 
-  function requestLocation() {
+  function requestLocation(silent = false) {
     if (!("geolocation" in navigator)) {
-      toast.error("Location not supported on this device");
+      if (!silent) toast.error("Location not supported on this device");
       return;
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         try {
-          localStorage.setItem(LOC_KEY, "1");
           localStorage.setItem(
             "quickbite_location",
             JSON.stringify({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
@@ -46,65 +55,145 @@ function LoginPage() {
         toast.success("Location enabled — finding spots near you");
       },
       () => {
-        try { localStorage.setItem(LOC_KEY, "1"); } catch {}
         setLocStatus("denied");
-        toast.error("Location denied — using default area");
+        if (!silent) toast.error("Location denied — using default area");
       },
       { enableHighAccuracy: true, timeout: 10000 },
     );
   }
 
-  function continueWithGoogle() {
-    setLoading(true);
-    setTimeout(() => navigate({ to: "/home" }), 900);
+  function persistUser(u: { name: string; email: string }) {
+    try { localStorage.setItem("quickbite_user", JSON.stringify(u)); } catch {}
   }
 
+  function submitEmail() {
+    if (!email || !password || (tab === "signup" && !name)) {
+      toast.error("Please fill all fields");
+      return;
+    }
+    setLoading(true);
+    setTimeout(() => {
+      persistUser({ name: name || email.split("@")[0], email });
+      toast.success(tab === "signin" ? "Welcome back!" : "Account created!");
+      navigate({ to: "/home" });
+    }, 700);
+  }
+
+  function continueWithGoogle() {
+    setLoading(true);
+    setTimeout(() => {
+      persistUser({ name: "Google User", email: "user@gmail.com" });
+      navigate({ to: "/home" });
+    }, 700);
+  }
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-violet-200 via-pink-100 to-sky-200 flex items-center justify-center p-0 sm:p-6">
-      <div className="relative w-full sm:max-w-[420px] sm:rounded-[36px] sm:shadow-2xl bg-white/70 backdrop-blur-2xl min-h-screen sm:min-h-[760px] overflow-hidden flex flex-col items-center justify-between p-8 pt-20">
+      <div className="relative w-full sm:max-w-[420px] sm:rounded-[36px] sm:shadow-2xl bg-white/70 backdrop-blur-2xl min-h-screen sm:min-h-[760px] overflow-hidden flex flex-col p-6 pt-12">
         <div className="flex flex-col items-center text-center">
-          <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-violet-400 to-pink-400 flex items-center justify-center shadow-xl shadow-pink-200 mb-6">
-            <UtensilsCrossed className="w-12 h-12 text-white" />
+          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-violet-400 to-pink-400 flex items-center justify-center shadow-xl shadow-pink-200 mb-4">
+            <UtensilsCrossed className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-4xl font-black bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-black bg-gradient-to-r from-violet-600 to-pink-600 bg-clip-text text-transparent">
             QuickBite
           </h1>
-          <p className="mt-3 text-slate-600 text-sm max-w-xs">
-            Delicious food from your favorite spots — delivered to your door in minutes.
+          <p className="mt-2 text-slate-600 text-sm max-w-xs">
+            Delicious food delivered in minutes.
           </p>
         </div>
 
-        <div className="w-full space-y-3">
+        <div className="mt-6 bg-white/80 rounded-2xl p-1 flex">
           <button
-            onClick={requestLocation}
-            className={`w-full h-12 rounded-2xl font-semibold flex items-center justify-center gap-2 transition ${
+            onClick={() => setTab("signin")}
+            className={`flex-1 h-10 rounded-xl text-sm font-semibold transition ${
+              tab === "signin" ? "bg-gradient-to-r from-violet-500 to-pink-500 text-white shadow" : "text-slate-600"
+            }`}
+          >
+            Sign in
+          </button>
+          <button
+            onClick={() => setTab("signup")}
+            className={`flex-1 h-10 rounded-xl text-sm font-semibold transition ${
+              tab === "signup" ? "bg-gradient-to-r from-violet-500 to-pink-500 text-white shadow" : "text-slate-600"
+            }`}
+          >
+            Sign up
+          </button>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {tab === "signup" && (
+            <Field icon={UserIcon} placeholder="Full name" value={name} onChange={setName} />
+          )}
+          <Field icon={Mail} placeholder="Email" type="email" value={email} onChange={setEmail} />
+          <Field icon={Lock} placeholder="Password" type="password" value={password} onChange={setPassword} />
+
+          <button
+            onClick={submitEmail}
+            disabled={loading}
+            className="w-full h-12 rounded-2xl bg-gradient-to-r from-violet-500 to-pink-500 text-white font-semibold shadow-lg shadow-pink-200 active:scale-[0.98] transition disabled:opacity-60"
+          >
+            {loading ? "Please wait..." : tab === "signin" ? "Sign in" : "Create account"}
+          </button>
+        </div>
+
+        <div className="my-4 flex items-center gap-3 text-xs text-slate-400">
+          <div className="flex-1 h-px bg-slate-200" /> or <div className="flex-1 h-px bg-slate-200" />
+        </div>
+
+        <div className="space-y-3">
+          <button
+            onClick={continueWithGoogle}
+            disabled={loading}
+            className="w-full h-12 rounded-2xl bg-white text-slate-800 font-semibold shadow border border-slate-200 flex items-center justify-center gap-3 active:scale-[0.98] transition disabled:opacity-60"
+          >
+            <GoogleIcon />
+            Continue with Google
+          </button>
+          <button
+            onClick={() => requestLocation(false)}
+            className={`w-full h-11 rounded-2xl font-medium text-sm flex items-center justify-center gap-2 transition ${
               locStatus === "granted"
                 ? "bg-emerald-100 text-emerald-700"
                 : "bg-white/80 text-slate-700 border border-slate-200"
             }`}
           >
             <MapPin className="w-4 h-4" />
-            {locStatus === "granted"
-              ? "Location enabled"
-              : locStatus === "denied"
-              ? "Enable location"
-              : "Use my location"}
+            {locStatus === "granted" ? "Location enabled" : "Enable location"}
           </button>
-          <button
-            onClick={continueWithGoogle}
-            disabled={loading}
-            className="w-full h-14 rounded-2xl bg-white text-slate-800 font-semibold shadow-lg shadow-slate-200/50 border border-slate-200 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition disabled:opacity-60"
-          >
-            <GoogleIcon />
-            {loading ? "Signing in..." : "Continue with Google"}
-          </button>
-          <p className="text-center text-xs text-slate-500">
-            By continuing you agree to our Terms & Privacy.
-          </p>
         </div>
 
+        <p className="mt-4 text-center text-[11px] text-slate-500">
+          By continuing you agree to our Terms & Privacy.
+        </p>
       </div>
+    </div>
+  );
+}
+
+function Field({
+  icon: Icon,
+  placeholder,
+  value,
+  onChange,
+  type = "text",
+}: {
+  icon: typeof Mail;
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+}) {
+  return (
+    <div className="relative">
+      <Icon className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full h-12 pl-11 pr-4 rounded-2xl bg-white/90 border border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-300"
+      />
     </div>
   );
 }
