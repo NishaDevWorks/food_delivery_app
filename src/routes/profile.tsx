@@ -49,7 +49,10 @@ function ProfilePage() {
         </div>
 
         <button
-          onClick={() => navigate({ to: "/" })}
+          onClick={() => {
+            try { localStorage.removeItem("quickbite_user"); } catch {}
+            navigate({ to: "/" });
+          }}
           className="mt-5 w-full h-12 rounded-2xl bg-white border border-rose-200 text-rose-600 font-semibold flex items-center justify-center gap-2"
         >
           <LogOut className="w-4 h-4" /> Sign out
