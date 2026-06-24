@@ -11,8 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrackRouteImport } from './routes/track'
 import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as PaymentsRouteImport } from './routes/payments'
+import { Route as OwnerRouteImport } from './routes/owner'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as HomeRouteImport } from './routes/home'
+import { Route as HelpRouteImport } from './routes/help'
 import { Route as CartRouteImport } from './routes/cart'
+import { Route as AddressesRouteImport } from './routes/addresses'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RestaurantIdRouteImport } from './routes/restaurant.$id'
 
@@ -26,14 +31,39 @@ const ProfileRoute = ProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PaymentsRoute = PaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OwnerRoute = OwnerRouteImport.update({
+  id: '/owner',
+  path: '/owner',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HomeRoute = HomeRouteImport.update({
   id: '/home',
   path: '/home',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HelpRoute = HelpRouteImport.update({
+  id: '/help',
+  path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CartRoute = CartRouteImport.update({
   id: '/cart',
   path: '/cart',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AddressesRoute = AddressesRouteImport.update({
+  id: '/addresses',
+  path: '/addresses',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -49,16 +79,26 @@ const RestaurantIdRoute = RestaurantIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/addresses': typeof AddressesRoute
   '/cart': typeof CartRoute
+  '/help': typeof HelpRoute
   '/home': typeof HomeRoute
+  '/notifications': typeof NotificationsRoute
+  '/owner': typeof OwnerRoute
+  '/payments': typeof PaymentsRoute
   '/profile': typeof ProfileRoute
   '/track': typeof TrackRoute
   '/restaurant/$id': typeof RestaurantIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/addresses': typeof AddressesRoute
   '/cart': typeof CartRoute
+  '/help': typeof HelpRoute
   '/home': typeof HomeRoute
+  '/notifications': typeof NotificationsRoute
+  '/owner': typeof OwnerRoute
+  '/payments': typeof PaymentsRoute
   '/profile': typeof ProfileRoute
   '/track': typeof TrackRoute
   '/restaurant/$id': typeof RestaurantIdRoute
@@ -66,22 +106,54 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/addresses': typeof AddressesRoute
   '/cart': typeof CartRoute
+  '/help': typeof HelpRoute
   '/home': typeof HomeRoute
+  '/notifications': typeof NotificationsRoute
+  '/owner': typeof OwnerRoute
+  '/payments': typeof PaymentsRoute
   '/profile': typeof ProfileRoute
   '/track': typeof TrackRoute
   '/restaurant/$id': typeof RestaurantIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/cart' | '/home' | '/profile' | '/track' | '/restaurant/$id'
+  fullPaths:
+    | '/'
+    | '/addresses'
+    | '/cart'
+    | '/help'
+    | '/home'
+    | '/notifications'
+    | '/owner'
+    | '/payments'
+    | '/profile'
+    | '/track'
+    | '/restaurant/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/cart' | '/home' | '/profile' | '/track' | '/restaurant/$id'
+  to:
+    | '/'
+    | '/addresses'
+    | '/cart'
+    | '/help'
+    | '/home'
+    | '/notifications'
+    | '/owner'
+    | '/payments'
+    | '/profile'
+    | '/track'
+    | '/restaurant/$id'
   id:
     | '__root__'
     | '/'
+    | '/addresses'
     | '/cart'
+    | '/help'
     | '/home'
+    | '/notifications'
+    | '/owner'
+    | '/payments'
     | '/profile'
     | '/track'
     | '/restaurant/$id'
@@ -89,8 +161,13 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AddressesRoute: typeof AddressesRoute
   CartRoute: typeof CartRoute
+  HelpRoute: typeof HelpRoute
   HomeRoute: typeof HomeRoute
+  NotificationsRoute: typeof NotificationsRoute
+  OwnerRoute: typeof OwnerRoute
+  PaymentsRoute: typeof PaymentsRoute
   ProfileRoute: typeof ProfileRoute
   TrackRoute: typeof TrackRoute
   RestaurantIdRoute: typeof RestaurantIdRoute
@@ -112,6 +189,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/payments': {
+      id: '/payments'
+      path: '/payments'
+      fullPath: '/payments'
+      preLoaderRoute: typeof PaymentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/owner': {
+      id: '/owner'
+      path: '/owner'
+      fullPath: '/owner'
+      preLoaderRoute: typeof OwnerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/home': {
       id: '/home'
       path: '/home'
@@ -119,11 +217,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HomeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/help': {
+      id: '/help'
+      path: '/help'
+      fullPath: '/help'
+      preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/cart': {
       id: '/cart'
       path: '/cart'
       fullPath: '/cart'
       preLoaderRoute: typeof CartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/addresses': {
+      id: '/addresses'
+      path: '/addresses'
+      fullPath: '/addresses'
+      preLoaderRoute: typeof AddressesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -145,8 +257,13 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AddressesRoute: AddressesRoute,
   CartRoute: CartRoute,
+  HelpRoute: HelpRoute,
   HomeRoute: HomeRoute,
+  NotificationsRoute: NotificationsRoute,
+  OwnerRoute: OwnerRoute,
+  PaymentsRoute: PaymentsRoute,
   ProfileRoute: ProfileRoute,
   TrackRoute: TrackRoute,
   RestaurantIdRoute: RestaurantIdRoute,

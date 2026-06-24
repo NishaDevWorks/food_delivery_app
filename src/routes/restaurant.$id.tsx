@@ -2,6 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, Star, Clock, Plus } from "lucide-react";
 import { MobileShell } from "@/components/MobileShell";
 import { findRestaurant, type Dish } from "@/lib/data";
+import { useCustomDishes } from "@/lib/owner";
 import { useCart } from "@/lib/cart";
 import { toast } from "sonner";
 
@@ -31,6 +32,8 @@ export const Route = createFileRoute("/restaurant/$id")({
 
 function RestaurantPage() {
   const r = Route.useLoaderData();
+  const custom = useCustomDishes(r.id);
+  const dishes: Dish[] = [...custom, ...r.dishes];
   const { add } = useCart();
 
   return (
@@ -62,7 +65,7 @@ function RestaurantPage() {
 
         <h2 className="mt-6 font-bold text-slate-800">Menu</h2>
         <div className="mt-3 space-y-3">
-          {r.dishes.map((d: Dish) => (
+          {dishes.map((d: Dish) => (
             <div key={d.id} className="flex items-center gap-3 bg-white/90 rounded-2xl p-3 shadow-sm">
               <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0">
                 <img src={d.image} alt={d.name} loading="lazy" className="w-full h-full object-cover" />
