@@ -85,10 +85,13 @@ function HomePage() {
               params={{ id: r.id }}
               className="rounded-2xl bg-white/90 p-3 shadow-sm hover:scale-[1.02] active:scale-[0.98] transition"
             >
-              <div
-                className={`aspect-square rounded-xl bg-gradient-to-br ${r.gradient} flex items-center justify-center text-5xl`}
-              >
-                {r.emoji}
+              <div className={`aspect-square rounded-xl bg-gradient-to-br ${r.gradient} overflow-hidden`}>
+                <img
+                  src={r.image}
+                  alt={r.name}
+                  loading="lazy"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <p className="mt-2 font-semibold text-sm text-slate-800 truncate">{r.name}</p>
               <p className="text-[11px] text-slate-500 truncate">{r.cuisine}</p>

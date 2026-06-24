@@ -35,14 +35,15 @@ function RestaurantPage() {
 
   return (
     <MobileShell>
-      <div className={`relative h-56 bg-gradient-to-br ${r.gradient} flex items-center justify-center`}>
+      <div className={`relative h-56 bg-gradient-to-br ${r.gradient} overflow-hidden`}>
+        <img src={r.image} alt={r.name} className="absolute inset-0 w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
         <Link
           to="/home"
           className="absolute top-5 left-5 w-10 h-10 rounded-full bg-white/80 backdrop-blur flex items-center justify-center shadow"
         >
           <ArrowLeft className="w-5 h-5 text-slate-700" />
         </Link>
-        <div className="text-8xl">{r.emoji}</div>
       </div>
 
       <div className="px-5 -mt-6 relative">
@@ -63,8 +64,8 @@ function RestaurantPage() {
         <div className="mt-3 space-y-3">
           {r.dishes.map((d: Dish) => (
             <div key={d.id} className="flex items-center gap-3 bg-white/90 rounded-2xl p-3 shadow-sm">
-              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-slate-100 to-slate-50 flex items-center justify-center text-3xl">
-                {d.emoji}
+              <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0">
+                <img src={d.image} alt={d.name} loading="lazy" className="w-full h-full object-cover" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm text-slate-800 truncate">{d.name}</p>
@@ -78,6 +79,7 @@ function RestaurantPage() {
                     name: d.name,
                     price: d.price,
                     emoji: d.emoji,
+                    image: d.image,
                     restaurantId: r.id,
                     restaurantName: r.name,
                   });

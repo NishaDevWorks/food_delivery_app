@@ -5,6 +5,7 @@ export type CartItem = {
   name: string;
   price: number;
   emoji: string;
+  image?: string;
   qty: number;
   restaurantId: string;
   restaurantName: string;
