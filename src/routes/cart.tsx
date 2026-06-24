@@ -40,6 +40,76 @@ function CartPage() {
     setPayOpen(true);
   }
 
+  function handleRazorpayPayment() {
+    if (method === "cod") {
+      confirmPayment();
+      return;
+    }
+
+    setPaying(true);
+    const chosen = PAYMENT_METHODS.find((m) => m.id === method);
+
+    // Load Razorpay SDK dynamically
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => {
+      let userObj = { name: "QuickBite User", email: "user@example.com" };
+      try {
+        userObj = JSON.parse(localStorage.getItem("quickbite_user") || "{}");
+      } catch {}
+
+      const options = {
+        key: "rzp_test_dummy_quickbite", // Test key for standard checkout
+        amount: grand * 100, // in paise
+        currency: "INR",
+        name: "QuickBite",
+        description: `Payment for food order via ${chosen?.label || "Online"}`,
+        handler: function (response: any) {
+          try {
+            localStorage.setItem(
+              "quickbite_active_order",
+              JSON.stringify({
+                items,
+                total: grand,
+                placedAt: Date.now(),
+                paymentMethod: `Razorpay (${chosen?.label || "Online"})`,
+                razorpayId: response.razorpay_payment_id,
+              }),
+            );
+          } catch {}
+          clear();
+          setPaying(false);
+          setPayOpen(false);
+          toast.success(`Payment successful! Transaction ID: ${response.razorpay_payment_id}`);
+          navigate({ to: "/track" });
+        },
+        prefill: {
+          name: userObj.name || "QuickBite User",
+          email: userObj.email || "user@example.com",
+          contact: "9999999999",
+        },
+        theme: {
+          color: "#8B5CF6", // matches violet theme
+        },
+        modal: {
+          ondismiss: function () {
+            setPaying(false);
+            toast.error("Payment cancelled");
+          },
+        },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+    };
+    script.onerror = () => {
+      setPaying(false);
+      toast.error("Could not load Razorpay gateway. Please check your internet connection.");
+    };
+    document.body.appendChild(script);
+  }
+
   function confirmPayment() {
     setPaying(true);
     const chosen = PAYMENT_METHODS.find((m) => m.id === method);
@@ -58,11 +128,7 @@ function CartPage() {
       clear();
       setPaying(false);
       setPayOpen(false);
-      toast.success(
-        method === "cod"
-          ? "Order placed! Pay cash on delivery."
-          : `Paid via ${chosen?.label}. Tracking your courier…`,
-      );
+      toast.success("Order placed! Pay cash on delivery.");
       navigate({ to: "/track" });
     }, 900);
   }
