@@ -79,6 +79,7 @@ function RestaurantPage() {
                     name: d.name,
                     price: d.price,
                     emoji: d.emoji,
+                    image: d.image,
                     restaurantId: r.id,
                     restaurantName: r.name,
                   });
