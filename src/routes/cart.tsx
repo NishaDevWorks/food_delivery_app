@@ -1,8 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag, Smartphone, CreditCard, Wallet, Banknote, Check } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag, Smartphone, CreditCard, Wallet, Banknote, Check, Tag, X } from "lucide-react";
 import { MobileShell } from "@/components/MobileShell";
 import { useCart } from "@/lib/cart";
+import { findCoupon, COUPONS } from "@/lib/coupons";
+import { addOrder, type Order } from "@/lib/orders";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -29,11 +31,41 @@ const PAYMENT_METHODS = [
 function CartPage() {
   const { items, setQty, remove, total, clear } = useCart();
   const navigate = useNavigate();
-  const deliveryFee = items.length ? 30 : 0;
-  const grand = total + deliveryFee;
   const [payOpen, setPayOpen] = useState(false);
   const [method, setMethod] = useState<string>("upi");
   const [paying, setPaying] = useState(false);
+  const [code, setCode] = useState("");
+  const [applied, setApplied] = useState<{ code: string; discount: number; freeDelivery: boolean } | null>(null);
+
+  const baseDelivery = items.length ? 30 : 0;
+  const deliveryFee = applied?.freeDelivery ? 0 : baseDelivery;
+  const discount = applied?.discount ?? 0;
+  const grand = Math.max(0, total + deliveryFee - discount);
+
+  function applyCoupon(input?: string) {
+    const c = findCoupon(input ?? code);
+    if (!c) {
+      toast.error("Invalid coupon code");
+      return;
+    }
+    if (c.minOrder && total < c.minOrder) {
+      toast.error(`Add ₹${c.minOrder - total} more to use ${c.code}`);
+      return;
+    }
+    const result = c.apply(total, baseDelivery);
+    if (result.discount === 0 && !result.freeDelivery) {
+      toast.error("Coupon not applicable");
+      return;
+    }
+    setApplied({ code: c.code, discount: result.discount, freeDelivery: result.freeDelivery });
+    setCode(c.code);
+    toast.success(`${c.code} applied`);
+  }
+
+  function removeCoupon() {
+    setApplied(null);
+    setCode("");
+  }
 
   function openPayment() {
     if (!items.length) return;
@@ -44,23 +76,27 @@ function CartPage() {
     setPaying(true);
     const chosen = PAYMENT_METHODS.find((m) => m.id === method);
     const isCod = method === "cod";
-    // Simulate gateway processing delay
     const delay = isCod ? 700 : 1500;
     setTimeout(() => {
+      const txnId = "QB" + Math.random().toString(36).slice(2, 10).toUpperCase();
+      const order: Order = {
+        id: txnId,
+        items,
+        subtotal: total,
+        deliveryFee,
+        discount,
+        total: grand,
+        placedAt: Date.now(),
+        paymentMethod: chosen?.label ?? "UPI",
+        paymentStatus: isCod ? "pending" : "paid",
+        transactionId: isCod ? null : txnId,
+        couponCode: applied?.code,
+        restaurantName: items[0]?.restaurantName,
+        status: "preparing",
+      };
       try {
-        const txnId =
-          "QB" + Math.random().toString(36).slice(2, 10).toUpperCase();
-        localStorage.setItem(
-          "quickbite_active_order",
-          JSON.stringify({
-            items,
-            total: grand,
-            placedAt: Date.now(),
-            paymentMethod: chosen?.label ?? "UPI",
-            transactionId: isCod ? null : txnId,
-            paymentStatus: isCod ? "pending" : "paid",
-          }),
-        );
+        addOrder(order);
+        localStorage.setItem("quickbite_active_order", JSON.stringify(order));
       } catch {}
       clear();
       setPaying(false);
@@ -104,8 +140,8 @@ function CartPage() {
               {items.map((i) => (
                 <div key={i.id} className="bg-white/90 rounded-2xl p-3 shadow-sm flex items-center gap-3">
                   <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 shrink-0">
-                    {(i as any).image ? (
-                      <img src={(i as any).image} alt={i.name} className="w-full h-full object-cover" />
+                    {i.image ? (
+                      <img src={i.image} alt={i.name} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-2xl">{i.emoji}</div>
                     )}
@@ -133,9 +169,63 @@ function CartPage() {
               ))}
             </div>
 
-            <div className="mt-6 bg-white/90 rounded-2xl p-4 shadow-sm space-y-2 text-sm">
+            {/* Coupon section */}
+            <div className="mt-5 bg-white/90 rounded-2xl p-4 shadow-sm">
+              <div className="flex items-center gap-2">
+                <Tag className="w-4 h-4 text-violet-600" />
+                <p className="text-sm font-bold text-slate-800">Promo code</p>
+              </div>
+              {applied ? (
+                <div className="mt-2 flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl p-2">
+                  <div>
+                    <p className="text-sm font-bold text-emerald-700">{applied.code} applied</p>
+                    <p className="text-[11px] text-emerald-600">
+                      You saved ₹{(applied.discount + (applied.freeDelivery ? baseDelivery : 0))}
+                    </p>
+                  </div>
+                  <button onClick={removeCoupon} className="text-emerald-700">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.toUpperCase())}
+                      placeholder="Enter code"
+                      className="flex-1 h-10 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
+                    />
+                    <button
+                      onClick={() => applyCoupon()}
+                      className="px-4 h-10 rounded-xl bg-violet-500 text-white text-sm font-semibold"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                  <div className="mt-3 space-y-1">
+                    {COUPONS.map((c) => (
+                      <button
+                        key={c.code}
+                        onClick={() => applyCoupon(c.code)}
+                        className="w-full flex items-center justify-between text-left p-2 rounded-lg hover:bg-violet-50"
+                      >
+                        <div>
+                          <p className="text-xs font-bold text-violet-700">{c.code}</p>
+                          <p className="text-[10px] text-slate-500">{c.description}</p>
+                        </div>
+                        <span className="text-[10px] text-violet-600 font-semibold">Apply</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="mt-5 bg-white/90 rounded-2xl p-4 shadow-sm space-y-2 text-sm">
               <Row label="Subtotal" value={`₹${total}`} />
-              <Row label="Delivery" value={`₹${deliveryFee}`} />
+              <Row label="Delivery" value={deliveryFee === 0 && baseDelivery > 0 ? "FREE" : `₹${deliveryFee}`} />
+              {discount > 0 && <Row label={`Discount (${applied?.code})`} value={`-₹${discount}`} accent />}
               <div className="h-px bg-slate-200 my-1" />
               <Row label="Total" value={`₹${grand}`} bold />
             </div>
@@ -182,7 +272,7 @@ function CartPage() {
           <button
             onClick={placeOrder}
             disabled={paying}
-            className="mt-3 w-full h-13 py-3.5 rounded-2xl bg-gradient-to-r from-violet-500 to-pink-500 text-white font-bold shadow-lg shadow-pink-200 active:scale-[0.98] transition disabled:opacity-60"
+            className="mt-3 w-full py-3.5 rounded-2xl bg-gradient-to-r from-violet-500 to-pink-500 text-white font-bold shadow-lg shadow-pink-200 active:scale-[0.98] transition disabled:opacity-60"
           >
             {paying ? "Processing…" : method === "cod" ? `Confirm order · ₹${grand}` : `Pay ₹${grand}`}
           </button>
@@ -192,9 +282,9 @@ function CartPage() {
   );
 }
 
-function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+function Row({ label, value, bold, accent }: { label: string; value: string; bold?: boolean; accent?: boolean }) {
   return (
-    <div className={`flex justify-between ${bold ? "font-bold text-slate-900" : "text-slate-600"}`}>
+    <div className={`flex justify-between ${bold ? "font-bold text-slate-900" : accent ? "text-emerald-600 font-semibold" : "text-slate-600"}`}>
       <span>{label}</span>
       <span>{value}</span>
     </div>
