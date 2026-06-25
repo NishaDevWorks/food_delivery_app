@@ -13,9 +13,11 @@ import { Route as TrackRouteImport } from './routes/track'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as OwnerRouteImport } from './routes/owner'
+import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as HelpRouteImport } from './routes/help'
+import { Route as FavoritesRouteImport } from './routes/favorites'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as AddressesRouteImport } from './routes/addresses'
 import { Route as IndexRouteImport } from './routes/index'
@@ -41,6 +43,11 @@ const OwnerRoute = OwnerRouteImport.update({
   path: '/owner',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrdersRoute = OrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NotificationsRoute = NotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
@@ -54,6 +61,11 @@ const HomeRoute = HomeRouteImport.update({
 const HelpRoute = HelpRouteImport.update({
   id: '/help',
   path: '/help',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FavoritesRoute = FavoritesRouteImport.update({
+  id: '/favorites',
+  path: '/favorites',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CartRoute = CartRouteImport.update({
@@ -81,9 +93,11 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/addresses': typeof AddressesRoute
   '/cart': typeof CartRoute
+  '/favorites': typeof FavoritesRoute
   '/help': typeof HelpRoute
   '/home': typeof HomeRoute
   '/notifications': typeof NotificationsRoute
+  '/orders': typeof OrdersRoute
   '/owner': typeof OwnerRoute
   '/payments': typeof PaymentsRoute
   '/profile': typeof ProfileRoute
@@ -94,9 +108,11 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/addresses': typeof AddressesRoute
   '/cart': typeof CartRoute
+  '/favorites': typeof FavoritesRoute
   '/help': typeof HelpRoute
   '/home': typeof HomeRoute
   '/notifications': typeof NotificationsRoute
+  '/orders': typeof OrdersRoute
   '/owner': typeof OwnerRoute
   '/payments': typeof PaymentsRoute
   '/profile': typeof ProfileRoute
@@ -108,9 +124,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/addresses': typeof AddressesRoute
   '/cart': typeof CartRoute
+  '/favorites': typeof FavoritesRoute
   '/help': typeof HelpRoute
   '/home': typeof HomeRoute
   '/notifications': typeof NotificationsRoute
+  '/orders': typeof OrdersRoute
   '/owner': typeof OwnerRoute
   '/payments': typeof PaymentsRoute
   '/profile': typeof ProfileRoute
@@ -123,9 +141,11 @@ export interface FileRouteTypes {
     | '/'
     | '/addresses'
     | '/cart'
+    | '/favorites'
     | '/help'
     | '/home'
     | '/notifications'
+    | '/orders'
     | '/owner'
     | '/payments'
     | '/profile'
@@ -136,9 +156,11 @@ export interface FileRouteTypes {
     | '/'
     | '/addresses'
     | '/cart'
+    | '/favorites'
     | '/help'
     | '/home'
     | '/notifications'
+    | '/orders'
     | '/owner'
     | '/payments'
     | '/profile'
@@ -149,9 +171,11 @@ export interface FileRouteTypes {
     | '/'
     | '/addresses'
     | '/cart'
+    | '/favorites'
     | '/help'
     | '/home'
     | '/notifications'
+    | '/orders'
     | '/owner'
     | '/payments'
     | '/profile'
@@ -163,9 +187,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AddressesRoute: typeof AddressesRoute
   CartRoute: typeof CartRoute
+  FavoritesRoute: typeof FavoritesRoute
   HelpRoute: typeof HelpRoute
   HomeRoute: typeof HomeRoute
   NotificationsRoute: typeof NotificationsRoute
+  OrdersRoute: typeof OrdersRoute
   OwnerRoute: typeof OwnerRoute
   PaymentsRoute: typeof PaymentsRoute
   ProfileRoute: typeof ProfileRoute
@@ -203,6 +229,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OwnerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/orders': {
+      id: '/orders'
+      path: '/orders'
+      fullPath: '/orders'
+      preLoaderRoute: typeof OrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/notifications': {
       id: '/notifications'
       path: '/notifications'
@@ -222,6 +255,13 @@ declare module '@tanstack/react-router' {
       path: '/help'
       fullPath: '/help'
       preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/favorites': {
+      id: '/favorites'
+      path: '/favorites'
+      fullPath: '/favorites'
+      preLoaderRoute: typeof FavoritesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/cart': {
@@ -259,9 +299,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AddressesRoute: AddressesRoute,
   CartRoute: CartRoute,
+  FavoritesRoute: FavoritesRoute,
   HelpRoute: HelpRoute,
   HomeRoute: HomeRoute,
   NotificationsRoute: NotificationsRoute,
+  OrdersRoute: OrdersRoute,
   OwnerRoute: OwnerRoute,
   PaymentsRoute: PaymentsRoute,
   ProfileRoute: ProfileRoute,

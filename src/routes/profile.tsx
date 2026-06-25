@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ChevronRight, MapPin, CreditCard, Bell, HelpCircle, LogOut, Store } from "lucide-react";
+import { ChevronRight, MapPin, CreditCard, Bell, HelpCircle, LogOut, Store, Package, Heart } from "lucide-react";
 import { MobileShell } from "@/components/MobileShell";
 
 export const Route = createFileRoute("/profile")({
@@ -10,6 +10,8 @@ export const Route = createFileRoute("/profile")({
 });
 
 const items = [
+  { icon: Package, label: "Order history", to: "/orders" as const },
+  { icon: Heart, label: "Favorites", to: "/favorites" as const },
   { icon: MapPin, label: "Saved addresses", to: "/addresses" as const },
   { icon: CreditCard, label: "Payment methods", to: "/payments" as const },
   { icon: Bell, label: "Notifications", to: "/notifications" as const },

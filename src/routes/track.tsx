@@ -1,7 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Phone, MessageCircle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Phone, MessageCircle, CheckCircle2, Star } from "lucide-react";
 import { MobileShell } from "@/components/MobileShell";
 import { useEffect, useRef, useState } from "react";
+import { addReview } from "@/lib/reviews";
+import { updateOrder } from "@/lib/orders";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/track")({
   head: () => ({
@@ -10,7 +20,6 @@ export const Route = createFileRoute("/track")({
   component: TrackPage,
 });
 
-// Customer (destination) and restaurant (start)
 const CUSTOMER: [number, number] = [19.076, 72.8777];
 const RESTAURANT: [number, number] = [19.09, 72.86];
 
@@ -24,14 +33,30 @@ const steps = [
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
 }
+// ease in-out for a more natural courier movement
+function easeInOut(t: number) {
+  return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+}
 
 function TrackPage() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
   const courierMarker = useRef<any>(null);
-  const routeLine = useRef<any>(null);
-  const [progress, setProgress] = useState(0); // 0..1
-  const [stepIdx, setStepIdx] = useState(2);
+  const traveledLine = useRef<any>(null);
+  const [progress, setProgress] = useState(0);
+  const [stepIdx, setStepIdx] = useState(1);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+  const [reviewed, setReviewed] = useState(false);
+  const [activeOrder, setActiveOrder] = useState<any>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("quickbite_active_order");
+      if (raw) setActiveOrder(JSON.parse(raw));
+    } catch {}
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -64,19 +89,31 @@ function TrackPage() {
       });
       const courierIcon = L.divIcon({
         className: "",
-        html: `<div style="width:38px;height:38px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 6px 16px rgba(0,0,0,.2);border:3px solid #8b5cf6">🛵</div>`,
-        iconSize: [38, 38],
-        iconAnchor: [19, 19],
+        html: `<div style="position:relative;width:42px;height:42px;display:flex;align-items:center;justify-content:center">
+                 <div style="position:absolute;inset:-6px;border-radius:50%;background:rgba(139,92,246,.25);animation:qbpulse 1.4s ease-out infinite"></div>
+                 <div style="position:relative;width:38px;height:38px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 6px 16px rgba(0,0,0,.2);border:3px solid #8b5cf6">🛵</div>
+               </div>
+               <style>@keyframes qbpulse{0%{transform:scale(.6);opacity:.8}100%{transform:scale(1.6);opacity:0}}</style>`,
+        iconSize: [42, 42],
+        iconAnchor: [21, 21],
       });
 
       L.marker(CUSTOMER, { icon: customerIcon }).addTo(map);
       L.marker(RESTAURANT, { icon: restaurantIcon }).addTo(map);
 
-      routeLine.current = L.polyline([RESTAURANT, CUSTOMER], {
-        color: "#8b5cf6",
+      // Dashed full route (the planned path)
+      L.polyline([RESTAURANT, CUSTOMER], {
+        color: "#cbd5e1",
         weight: 4,
-        opacity: 0.6,
-        dashArray: "8,8",
+        opacity: 0.8,
+        dashArray: "6,8",
+      }).addTo(map);
+
+      // Solid traveled line that grows as courier moves
+      traveledLine.current = L.polyline([RESTAURANT], {
+        color: "#8b5cf6",
+        weight: 5,
+        opacity: 0.9,
       }).addTo(map);
 
       courierMarker.current = L.marker(RESTAURANT, { icon: courierIcon }).addTo(map);
@@ -85,17 +122,22 @@ function TrackPage() {
 
       interval = setInterval(() => {
         setProgress((p) => {
-          const next = Math.min(1, p + 0.02);
+          const next = Math.min(1, p + 0.01);
+          const t = easeInOut(next);
           if (courierMarker.current) {
-            const lat = lerp(RESTAURANT[0], CUSTOMER[0], next);
-            const lng = lerp(RESTAURANT[1], CUSTOMER[1], next);
+            const lat = lerp(RESTAURANT[0], CUSTOMER[0], t);
+            const lng = lerp(RESTAURANT[1], CUSTOMER[1], t);
             courierMarker.current.setLatLng([lat, lng]);
+            if (traveledLine.current) {
+              traveledLine.current.setLatLngs([RESTAURANT, [lat, lng]]);
+            }
           }
           if (next >= 1) setStepIdx(3);
           else if (next > 0.05) setStepIdx(2);
+          else setStepIdx(1);
           return next;
         });
-      }, 600);
+      }, 250);
     })();
     return () => {
       mounted = false;
@@ -107,7 +149,39 @@ function TrackPage() {
     };
   }, []);
 
-  const etaMin = Math.max(1, Math.round((1 - progress) * 15));
+  // When delivered, update order status + prompt review once
+  useEffect(() => {
+    if (stepIdx === 3 && activeOrder && activeOrder.status !== "delivered") {
+      try {
+        updateOrder(activeOrder.id, { status: "delivered" });
+        const updated = { ...activeOrder, status: "delivered" };
+        localStorage.setItem("quickbite_active_order", JSON.stringify(updated));
+        setActiveOrder(updated);
+      } catch {}
+      if (!reviewed) setReviewOpen(true);
+    }
+  }, [stepIdx, activeOrder, reviewed]);
+
+  function submitReview() {
+    if (!activeOrder) return;
+    const restaurantId = activeOrder.items?.[0]?.restaurantId;
+    if (!restaurantId) {
+      setReviewOpen(false);
+      return;
+    }
+    addReview({
+      restaurantId,
+      rating,
+      comment: comment.trim(),
+      author: "You",
+    });
+    setReviewed(true);
+    setReviewOpen(false);
+    toast.success("Thanks for the review!");
+  }
+
+  const etaMin = Math.max(0, Math.round((1 - progress) * 15));
+  const delivered = stepIdx === 3;
 
   return (
     <MobileShell>
@@ -125,8 +199,10 @@ function TrackPage() {
         <div className="bg-white rounded-3xl p-5 shadow-xl">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-slate-500">Arriving in</p>
-              <p className="text-2xl font-black text-slate-900">{etaMin} min</p>
+              <p className="text-xs text-slate-500">{delivered ? "Status" : "Arriving in"}</p>
+              <p className="text-2xl font-black text-slate-900">
+                {delivered ? "Delivered 🎉" : `${etaMin} min`}
+              </p>
             </div>
             <div className="flex gap-2">
               <button className="w-10 h-10 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center">
@@ -148,6 +224,15 @@ function TrackPage() {
             </div>
             <span className="text-xs font-bold text-emerald-600">★ 4.9</span>
           </div>
+
+          {delivered && !reviewed && (
+            <button
+              onClick={() => setReviewOpen(true)}
+              className="mt-4 w-full h-12 rounded-2xl bg-gradient-to-r from-violet-500 to-pink-500 text-white font-bold shadow-md shadow-pink-200"
+            >
+              ⭐ Rate your order
+            </button>
+          )}
         </div>
 
         <h3 className="mt-6 font-bold text-slate-800">Order status</h3>
@@ -176,6 +261,39 @@ function TrackPage() {
           })}
         </div>
       </div>
+
+      <Dialog open={reviewOpen} onOpenChange={setReviewOpen}>
+        <DialogContent className="sm:max-w-[400px] rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black text-slate-900">How was your order?</DialogTitle>
+            <DialogDescription>Your feedback helps the restaurant improve.</DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-center gap-2 my-3">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <button key={n} onClick={() => setRating(n)} aria-label={`Rate ${n}`}>
+                <Star
+                  className={`w-9 h-9 ${
+                    n <= rating ? "fill-amber-400 text-amber-400" : "text-slate-300"
+                  }`}
+                />
+              </button>
+            ))}
+          </div>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Tell us more (optional)"
+            rows={3}
+            className="w-full p-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
+          />
+          <button
+            onClick={submitReview}
+            className="mt-2 w-full py-3 rounded-2xl bg-gradient-to-r from-violet-500 to-pink-500 text-white font-bold"
+          >
+            Submit review
+          </button>
+        </DialogContent>
+      </Dialog>
     </MobileShell>
   );
 }
