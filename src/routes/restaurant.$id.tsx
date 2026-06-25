@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, Star, Clock, Plus, Heart, Leaf } from "lucide-react";
+import { ArrowLeft, Star, Clock, Plus, Heart } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MobileShell } from "@/components/MobileShell";
 import { findRestaurant, type Dish } from "@/lib/data";
@@ -165,8 +165,6 @@ function RestaurantPage() {
           </>
         )}
         <div className="h-6" />
-        {/* Decorative use of Leaf to silence unused-import lint if needed */}
-        <span className="hidden"><Leaf /></span>
       </div>
     </MobileShell>
   );
