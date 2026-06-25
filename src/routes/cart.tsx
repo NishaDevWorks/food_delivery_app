@@ -180,7 +180,7 @@ function CartPage() {
             })}
           </div>
           <button
-            onClick={handleRazorpayPayment}
+            onClick={placeOrder}
             disabled={paying}
             className="mt-3 w-full h-13 py-3.5 rounded-2xl bg-gradient-to-r from-violet-500 to-pink-500 text-white font-bold shadow-lg shadow-pink-200 active:scale-[0.98] transition disabled:opacity-60"
           >
