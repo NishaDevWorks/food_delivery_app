@@ -1,18 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag, Smartphone, CreditCard, Wallet, Banknote, Check, Tag, X } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag, Banknote, Tag, X } from "lucide-react";
 import { MobileShell } from "@/components/MobileShell";
+import { RazorpayCheckout, type RzpMethod } from "@/components/RazorpayCheckout";
 import { useCart } from "@/lib/cart";
 import { findCoupon, COUPONS } from "@/lib/coupons";
 import { addOrder, type Order } from "@/lib/orders";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+
 
 export const Route = createFileRoute("/cart")({
   head: () => ({
@@ -21,32 +16,25 @@ export const Route = createFileRoute("/cart")({
   component: CartPage,
 });
 
-const PAYMENT_METHODS = [
-  { id: "upi", label: "UPI", desc: "Google Pay, PhonePe, Paytm", Icon: Smartphone },
-  { id: "card", label: "Credit / Debit Card", desc: "Visa, Mastercard, Rupay", Icon: CreditCard },
-  { id: "wallet", label: "Wallet", desc: "Paytm, Amazon Pay", Icon: Wallet },
-  { id: "cod", label: "Cash on Delivery", desc: "Pay when it arrives", Icon: Banknote },
-] as const;
 
 function CartPage() {
   const { items, setQty, remove, total, clear } = useCart();
   const navigate = useNavigate();
   const [payOpen, setPayOpen] = useState(false);
-  const [payStep, setPayStep] = useState<"choose" | "details">("choose");
-  const [method, setMethod] = useState<string>("upi");
   const [paying, setPaying] = useState(false);
   const [code, setCode] = useState("");
   const [applied, setApplied] = useState<{ code: string; discount: number; freeDelivery: boolean } | null>(null);
-  const [upiId, setUpiId] = useState("");
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
-  const [cardCvv, setCardCvv] = useState("");
-  const [cardName, setCardName] = useState("");
-  const [walletPhone, setWalletPhone] = useState("");
 
+  const userPhone = (() => {
+    try {
+      const u = JSON.parse(localStorage.getItem("quickbite_user") || "null");
+      return u?.phone as string | undefined;
+    } catch { return undefined; }
+  })();
 
   const baseDelivery = items.length ? 30 : 0;
   const deliveryFee = applied?.freeDelivery ? 0 : baseDelivery;
+
   const discount = applied?.discount ?? 0;
   const grand = Math.max(0, total + deliveryFee - discount);
 
@@ -77,81 +65,51 @@ function CartPage() {
 
   function openPayment() {
     if (!items.length) return;
-    setPayStep("choose");
     setPayOpen(true);
   }
 
-  function proceedToDetails() {
-    if (method === "cod") {
-      placeOrder();
-      return;
-    }
-    setPayStep("details");
-  }
-
-  function validateDetails(): string | null {
-    if (method === "upi") {
-      if (!/^[\w.\-]{2,}@[a-zA-Z]{2,}$/.test(upiId.trim())) return "Enter a valid UPI ID (e.g. name@upi)";
-    } else if (method === "card") {
-      const num = cardNumber.replace(/\s/g, "");
-      if (!/^\d{16}$/.test(num)) return "Card number must be 16 digits";
-      if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(cardExpiry)) return "Expiry must be MM/YY";
-      if (!/^\d{3,4}$/.test(cardCvv)) return "CVV must be 3-4 digits";
-      if (cardName.trim().length < 2) return "Enter cardholder name";
-    } else if (method === "wallet") {
-      if (!/^\d{10}$/.test(walletPhone)) return "Enter a valid 10-digit mobile number";
-    }
-    return null;
-  }
-
-  function submitPayment() {
-    const err = validateDetails();
-    if (err) {
-      toast.error(err);
-      return;
-    }
-    placeOrder();
-  }
-
-  function placeOrder() {
+  function finalizeOrder(paymentLabel: string, isCod: boolean, txnMeta?: Record<string, string>) {
     setPaying(true);
-    const chosen = PAYMENT_METHODS.find((m) => m.id === method);
-    const isCod = method === "cod";
-    const delay = isCod ? 700 : 1500;
-    setTimeout(() => {
-      const txnId = "QB" + Math.random().toString(36).slice(2, 10).toUpperCase();
-      const order: Order = {
-        id: txnId,
-        items,
-        subtotal: total,
-        deliveryFee,
-        discount,
-        total: grand,
-        placedAt: Date.now(),
-        paymentMethod: chosen?.label ?? "UPI",
-        paymentStatus: isCod ? "pending" : "paid",
-        transactionId: isCod ? null : txnId,
-        couponCode: applied?.code,
-        restaurantName: items[0]?.restaurantName,
-        status: "preparing",
-      };
-      try {
-        addOrder(order);
-        localStorage.setItem("quickbite_active_order", JSON.stringify(order));
-      } catch {}
-      clear();
-      setPaying(false);
-      setPayOpen(false);
-      setPayStep("choose");
-      toast.success(
-        isCod
-          ? "Order placed! Pay cash on delivery."
-          : `Payment successful via ${chosen?.label}`,
-      );
-
-      navigate({ to: "/track" });
-    }, delay);
+    const txnId = "QB" + Math.random().toString(36).slice(2, 10).toUpperCase();
+    const order: Order = {
+      id: txnId,
+      items,
+      subtotal: total,
+      deliveryFee,
+      discount,
+      total: grand,
+      placedAt: Date.now(),
+      paymentMethod: paymentLabel + (txnMeta?.upiId ? ` (${txnMeta.upiId})` : txnMeta?.card ? ` (${txnMeta.card})` : txnMeta?.bank ? ` (${txnMeta.bank})` : txnMeta?.wallet ? ` (${txnMeta.wallet})` : txnMeta?.provider ? ` (${txnMeta.provider})` : ""),
+      paymentStatus: isCod ? "pending" : "paid",
+      transactionId: isCod ? null : txnId,
+      couponCode: applied?.code,
+      restaurantName: items[0]?.restaurantName,
+      status: "preparing",
+    };
+    try {
+      addOrder(order);
+      localStorage.setItem("quickbite_active_order", JSON.stringify(order));
+    } catch {}
+    clear();
+    setPaying(false);
+    setPayOpen(false);
+    toast.success(isCod ? "Order placed! Pay cash on delivery." : `Payment successful via ${paymentLabel}`);
+    navigate({ to: "/track" });
   }
+
+  function payCod() {
+    if (!items.length) return;
+    finalizeOrder("Cash on Delivery", true);
+  }
+
+  const methodLabels: Record<RzpMethod, string> = {
+    upi: "UPI",
+    card: "Card",
+    netbanking: "Netbanking",
+    wallet: "Wallet",
+    paylater: "Pay Later",
+  };
+
 
   return (
     <MobileShell>
@@ -275,137 +233,32 @@ function CartPage() {
 
             <button
               onClick={openPayment}
-              className="mt-5 w-full h-14 rounded-2xl bg-gradient-to-r from-violet-500 to-pink-500 text-white font-bold shadow-lg shadow-pink-200 active:scale-[0.98] transition"
+              disabled={paying}
+              className="mt-5 w-full h-14 rounded-2xl bg-gradient-to-r from-violet-500 to-pink-500 text-white font-bold shadow-lg shadow-pink-200 active:scale-[0.98] transition disabled:opacity-60"
             >
-              Place order · ₹{grand}
+              Pay ₹{grand} online
+            </button>
+            <button
+              onClick={payCod}
+              disabled={paying}
+              className="mt-2 w-full h-12 rounded-2xl bg-white border-2 border-slate-200 text-slate-800 font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition disabled:opacity-60"
+            >
+              <Banknote className="w-4 h-4 text-emerald-600" />
+              Cash on Delivery
             </button>
           </>
         )}
       </div>
 
-      <Dialog open={payOpen} onOpenChange={(o) => { setPayOpen(o); if (!o) setPayStep("choose"); }}>
-        <DialogContent className="sm:max-w-[420px] rounded-3xl">
-          {payStep === "choose" ? (
-            <>
-              <DialogHeader>
-                <DialogTitle className="text-xl font-black text-slate-900">Choose payment</DialogTitle>
-                <DialogDescription>Select how you'd like to pay ₹{grand}</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-2 mt-2">
-                {PAYMENT_METHODS.map(({ id, label, desc, Icon }) => {
-                  const active = method === id;
-                  return (
-                    <button
-                      key={id}
-                      onClick={() => setMethod(id)}
-                      className={`w-full flex items-center gap-3 p-3 rounded-2xl border-2 transition text-left ${
-                        active ? "border-violet-500 bg-violet-50" : "border-slate-200 bg-white"
-                      }`}
-                    >
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${active ? "bg-gradient-to-br from-violet-500 to-pink-500 text-white" : "bg-slate-100 text-slate-600"}`}>
-                        <Icon className="w-5 h-5" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm text-slate-800">{label}</p>
-                        <p className="text-[11px] text-slate-500 truncate">{desc}</p>
-                      </div>
-                      {active && <Check className="w-5 h-5 text-violet-600" />}
-                    </button>
-                  );
-                })}
-              </div>
-              <button
-                onClick={proceedToDetails}
-                disabled={paying}
-                className="mt-3 w-full py-3.5 rounded-2xl bg-gradient-to-r from-violet-500 to-pink-500 text-white font-bold shadow-lg shadow-pink-200 active:scale-[0.98] transition disabled:opacity-60"
-              >
-                {paying ? "Processing…" : method === "cod" ? `Confirm order · ₹${grand}` : `Continue`}
-              </button>
-            </>
-          ) : (
-            <>
-              <DialogHeader>
-                <DialogTitle className="text-xl font-black text-slate-900">
-                  {method === "upi" ? "Enter UPI ID" : method === "card" ? "Card details" : "Wallet mobile number"}
-                </DialogTitle>
-                <DialogDescription>Paying ₹{grand} · {PAYMENT_METHODS.find(m => m.id === method)?.label}</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-3 mt-2">
-                {method === "upi" && (
-                  <input
-                    value={upiId}
-                    onChange={(e) => setUpiId(e.target.value)}
-                    placeholder="yourname@upi"
-                    className="w-full h-12 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
-                  />
-                )}
-                {method === "card" && (
-                  <>
-                    <input
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value.replace(/\D/g, "").slice(0, 16).replace(/(\d{4})(?=\d)/g, "$1 "))}
-                      placeholder="Card number"
-                      inputMode="numeric"
-                      className="w-full h-12 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
-                    />
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        value={cardExpiry}
-                        onChange={(e) => {
-                          let v = e.target.value.replace(/\D/g, "").slice(0, 4);
-                          if (v.length >= 3) v = v.slice(0, 2) + "/" + v.slice(2);
-                          setCardExpiry(v);
-                        }}
-                        placeholder="MM/YY"
-                        className="h-12 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
-                      />
-                      <input
-                        value={cardCvv}
-                        onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                        placeholder="CVV"
-                        type="password"
-                        className="h-12 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
-                      />
-                    </div>
-                    <input
-                      value={cardName}
-                      onChange={(e) => setCardName(e.target.value)}
-                      placeholder="Cardholder name"
-                      className="w-full h-12 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
-                    />
-                  </>
-                )}
-                {method === "wallet" && (
-                  <input
-                    value={walletPhone}
-                    onChange={(e) => setWalletPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    placeholder="10-digit mobile number"
-                    inputMode="numeric"
-                    className="w-full h-12 px-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
-                  />
-                )}
-                <p className="text-[11px] text-slate-400 text-center">🔒 Demo checkout — no real charge is made</p>
-              </div>
-              <div className="flex gap-2 mt-2">
-                <button
-                  onClick={() => setPayStep("choose")}
-                  disabled={paying}
-                  className="flex-1 py-3 rounded-2xl bg-slate-100 text-slate-700 font-semibold"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={submitPayment}
-                  disabled={paying}
-                  className="flex-[2] py-3 rounded-2xl bg-gradient-to-r from-violet-500 to-pink-500 text-white font-bold shadow-lg shadow-pink-200 active:scale-[0.98] transition disabled:opacity-60"
-                >
-                  {paying ? "Processing…" : `Pay ₹${grand}`}
-                </button>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      <RazorpayCheckout
+        open={payOpen}
+        amount={grand}
+        phone={userPhone}
+        merchantName="QuickBite"
+        onClose={() => !paying && setPayOpen(false)}
+        onSuccess={(m, meta) => finalizeOrder(methodLabels[m], false, meta)}
+      />
+
 
     </MobileShell>
   );
