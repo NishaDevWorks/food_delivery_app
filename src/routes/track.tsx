@@ -233,6 +233,26 @@ function TrackPage() {
               ⭐ Rate your order
             </button>
           )}
+
+          {reviewed && activeOrder?.items?.[0]?.restaurantId && (
+            <div className="mt-4 p-3 rounded-2xl bg-emerald-50 border border-emerald-200">
+              <div className="flex items-center gap-1 mb-1">
+                {[1,2,3,4,5].map((n) => (
+                  <Star key={n} className={`w-4 h-4 ${n <= rating ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} />
+                ))}
+                <span className="ml-1 text-xs font-semibold text-emerald-700">Your review posted</span>
+              </div>
+              {comment && <p className="text-xs text-slate-700">"{comment}"</p>}
+              <Link
+                to="/restaurant/$id"
+                params={{ id: activeOrder.items[0].restaurantId }}
+                className="mt-2 inline-block text-xs font-bold text-violet-600"
+              >
+                View on restaurant page →
+              </Link>
+            </div>
+          )}
+
         </div>
 
         <h3 className="mt-6 font-bold text-slate-800">Order status</h3>
