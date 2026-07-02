@@ -17,32 +17,24 @@ export const Route = createFileRoute("/cart")({
 });
 
 
-const PAYMENT_METHODS = [
-  { id: "upi", label: "UPI", desc: "Google Pay, PhonePe, Paytm", Icon: Smartphone },
-  { id: "card", label: "Credit / Debit Card", desc: "Visa, Mastercard, Rupay", Icon: CreditCard },
-  { id: "wallet", label: "Wallet", desc: "Paytm, Amazon Pay", Icon: Wallet },
-  { id: "cod", label: "Cash on Delivery", desc: "Pay when it arrives", Icon: Banknote },
-] as const;
-
 function CartPage() {
   const { items, setQty, remove, total, clear } = useCart();
   const navigate = useNavigate();
   const [payOpen, setPayOpen] = useState(false);
-  const [payStep, setPayStep] = useState<"choose" | "details">("choose");
-  const [method, setMethod] = useState<string>("upi");
   const [paying, setPaying] = useState(false);
   const [code, setCode] = useState("");
   const [applied, setApplied] = useState<{ code: string; discount: number; freeDelivery: boolean } | null>(null);
-  const [upiId, setUpiId] = useState("");
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
-  const [cardCvv, setCardCvv] = useState("");
-  const [cardName, setCardName] = useState("");
-  const [walletPhone, setWalletPhone] = useState("");
 
+  const userPhone = (() => {
+    try {
+      const u = JSON.parse(localStorage.getItem("quickbite_user") || "null");
+      return u?.phone as string | undefined;
+    } catch { return undefined; }
+  })();
 
   const baseDelivery = items.length ? 30 : 0;
   const deliveryFee = applied?.freeDelivery ? 0 : baseDelivery;
+
   const discount = applied?.discount ?? 0;
   const grand = Math.max(0, total + deliveryFee - discount);
 
