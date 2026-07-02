@@ -16,6 +16,7 @@ export const Route = createFileRoute("/cart")({
   component: CartPage,
 });
 
+
 const PAYMENT_METHODS = [
   { id: "upi", label: "UPI", desc: "Google Pay, PhonePe, Paytm", Icon: Smartphone },
   { id: "card", label: "Credit / Debit Card", desc: "Visa, Mastercard, Rupay", Icon: CreditCard },
