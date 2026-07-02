@@ -1,18 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag, Smartphone, CreditCard, Wallet, Banknote, Check, Tag, X } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag, Banknote, Tag, X } from "lucide-react";
 import { MobileShell } from "@/components/MobileShell";
+import { RazorpayCheckout, type RzpMethod } from "@/components/RazorpayCheckout";
 import { useCart } from "@/lib/cart";
 import { findCoupon, COUPONS } from "@/lib/coupons";
 import { addOrder, type Order } from "@/lib/orders";
 import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+
 
 export const Route = createFileRoute("/cart")({
   head: () => ({
