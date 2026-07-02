@@ -77,7 +77,40 @@ function CartPage() {
 
   function openPayment() {
     if (!items.length) return;
+    setPayStep("choose");
     setPayOpen(true);
+  }
+
+  function proceedToDetails() {
+    if (method === "cod") {
+      placeOrder();
+      return;
+    }
+    setPayStep("details");
+  }
+
+  function validateDetails(): string | null {
+    if (method === "upi") {
+      if (!/^[\w.\-]{2,}@[a-zA-Z]{2,}$/.test(upiId.trim())) return "Enter a valid UPI ID (e.g. name@upi)";
+    } else if (method === "card") {
+      const num = cardNumber.replace(/\s/g, "");
+      if (!/^\d{16}$/.test(num)) return "Card number must be 16 digits";
+      if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(cardExpiry)) return "Expiry must be MM/YY";
+      if (!/^\d{3,4}$/.test(cardCvv)) return "CVV must be 3-4 digits";
+      if (cardName.trim().length < 2) return "Enter cardholder name";
+    } else if (method === "wallet") {
+      if (!/^\d{10}$/.test(walletPhone)) return "Enter a valid 10-digit mobile number";
+    }
+    return null;
+  }
+
+  function submitPayment() {
+    const err = validateDetails();
+    if (err) {
+      toast.error(err);
+      return;
+    }
+    placeOrder();
   }
 
   function placeOrder() {
