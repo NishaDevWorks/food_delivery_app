@@ -65,81 +65,51 @@ function CartPage() {
 
   function openPayment() {
     if (!items.length) return;
-    setPayStep("choose");
     setPayOpen(true);
   }
 
-  function proceedToDetails() {
-    if (method === "cod") {
-      placeOrder();
-      return;
-    }
-    setPayStep("details");
-  }
-
-  function validateDetails(): string | null {
-    if (method === "upi") {
-      if (!/^[\w.\-]{2,}@[a-zA-Z]{2,}$/.test(upiId.trim())) return "Enter a valid UPI ID (e.g. name@upi)";
-    } else if (method === "card") {
-      const num = cardNumber.replace(/\s/g, "");
-      if (!/^\d{16}$/.test(num)) return "Card number must be 16 digits";
-      if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(cardExpiry)) return "Expiry must be MM/YY";
-      if (!/^\d{3,4}$/.test(cardCvv)) return "CVV must be 3-4 digits";
-      if (cardName.trim().length < 2) return "Enter cardholder name";
-    } else if (method === "wallet") {
-      if (!/^\d{10}$/.test(walletPhone)) return "Enter a valid 10-digit mobile number";
-    }
-    return null;
-  }
-
-  function submitPayment() {
-    const err = validateDetails();
-    if (err) {
-      toast.error(err);
-      return;
-    }
-    placeOrder();
-  }
-
-  function placeOrder() {
+  function finalizeOrder(paymentLabel: string, isCod: boolean, txnMeta?: Record<string, string>) {
     setPaying(true);
-    const chosen = PAYMENT_METHODS.find((m) => m.id === method);
-    const isCod = method === "cod";
-    const delay = isCod ? 700 : 1500;
-    setTimeout(() => {
-      const txnId = "QB" + Math.random().toString(36).slice(2, 10).toUpperCase();
-      const order: Order = {
-        id: txnId,
-        items,
-        subtotal: total,
-        deliveryFee,
-        discount,
-        total: grand,
-        placedAt: Date.now(),
-        paymentMethod: chosen?.label ?? "UPI",
-        paymentStatus: isCod ? "pending" : "paid",
-        transactionId: isCod ? null : txnId,
-        couponCode: applied?.code,
-        restaurantName: items[0]?.restaurantName,
-        status: "preparing",
-      };
-      try {
-        addOrder(order);
-        localStorage.setItem("quickbite_active_order", JSON.stringify(order));
-      } catch {}
-      clear();
-      setPaying(false);
-      setPayOpen(false);
-      setPayStep("choose");
-      toast.success(
-        isCod
-          ? "Order placed! Pay cash on delivery."
-          : `Payment successful via ${chosen?.label}`,
-      );
-
-      navigate({ to: "/track" });
-    }, delay);
+    const txnId = "QB" + Math.random().toString(36).slice(2, 10).toUpperCase();
+    const order: Order = {
+      id: txnId,
+      items,
+      subtotal: total,
+      deliveryFee,
+      discount,
+      total: grand,
+      placedAt: Date.now(),
+      paymentMethod: paymentLabel + (txnMeta?.upiId ? ` (${txnMeta.upiId})` : txnMeta?.card ? ` (${txnMeta.card})` : txnMeta?.bank ? ` (${txnMeta.bank})` : txnMeta?.wallet ? ` (${txnMeta.wallet})` : txnMeta?.provider ? ` (${txnMeta.provider})` : ""),
+      paymentStatus: isCod ? "pending" : "paid",
+      transactionId: isCod ? null : txnId,
+      couponCode: applied?.code,
+      restaurantName: items[0]?.restaurantName,
+      status: "preparing",
+    };
+    try {
+      addOrder(order);
+      localStorage.setItem("quickbite_active_order", JSON.stringify(order));
+    } catch {}
+    clear();
+    setPaying(false);
+    setPayOpen(false);
+    toast.success(isCod ? "Order placed! Pay cash on delivery." : `Payment successful via ${paymentLabel}`);
+    navigate({ to: "/track" });
   }
+
+  function payCod() {
+    if (!items.length) return;
+    finalizeOrder("Cash on Delivery", true);
+  }
+
+  const methodLabels: Record<RzpMethod, string> = {
+    upi: "UPI",
+    card: "Card",
+    netbanking: "Netbanking",
+    wallet: "Wallet",
+    paylater: "Pay Later",
+  };
+
 
   return (
     <MobileShell>
