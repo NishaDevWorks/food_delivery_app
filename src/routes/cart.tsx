@@ -32,10 +32,18 @@ function CartPage() {
   const { items, setQty, remove, total, clear } = useCart();
   const navigate = useNavigate();
   const [payOpen, setPayOpen] = useState(false);
+  const [payStep, setPayStep] = useState<"choose" | "details">("choose");
   const [method, setMethod] = useState<string>("upi");
   const [paying, setPaying] = useState(false);
   const [code, setCode] = useState("");
   const [applied, setApplied] = useState<{ code: string; discount: number; freeDelivery: boolean } | null>(null);
+  const [upiId, setUpiId] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
+  const [cardName, setCardName] = useState("");
+  const [walletPhone, setWalletPhone] = useState("");
+
 
   const baseDelivery = items.length ? 30 : 0;
   const deliveryFee = applied?.freeDelivery ? 0 : baseDelivery;
