@@ -142,11 +142,13 @@ function CartPage() {
       clear();
       setPaying(false);
       setPayOpen(false);
+      setPayStep("choose");
       toast.success(
         isCod
           ? "Order placed! Pay cash on delivery."
           : `Payment successful via ${chosen?.label}`,
       );
+
       navigate({ to: "/track" });
     }, delay);
   }
