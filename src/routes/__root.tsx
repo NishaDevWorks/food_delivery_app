@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CartProvider } from "../lib/cart";
 import { FavoritesProvider } from "../lib/favorites";
 import { Toaster as SonnerToaster } from "sonner";
+import { supabase } from "../integrations/supabase/client";
 
 function NotFoundComponent() {
   return (
@@ -80,14 +81,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "QuickBite – Order food, fast" },
+      { name: "description", content: "Order delicious food from nearby restaurants. Real Google sign-in, secure Razorpay checkout, and orders synced across devices." },
+      { property: "og:title", content: "QuickBite – Order food, fast" },
+      { property: "og:description", content: "Order delicious food from nearby restaurants. Secure Razorpay checkout." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -116,6 +115,37 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Sync `quickbite_user` cache used by MobileShell's auth gate.
+    function syncFromSession(session: import("@supabase/supabase-js").Session | null) {
+      try {
+        if (session?.user) {
+          const meta = (session.user.user_metadata ?? {}) as Record<string, string>;
+          const cache = {
+            id: session.user.id,
+            name: meta.full_name || meta.name || session.user.email?.split("@")[0] || "User",
+            email: session.user.email ?? "",
+            avatar: meta.avatar_url || meta.picture || null,
+          };
+          localStorage.setItem("quickbite_user", JSON.stringify(cache));
+        } else {
+          localStorage.removeItem("quickbite_user");
+        }
+      } catch {}
+    }
+
+    supabase.auth.getSession().then(({ data }) => syncFromSession(data.session));
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT" || event === "USER_UPDATED") {
+        syncFromSession(session);
+        router.invalidate();
+      }
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [router]);
 
   return (
     <QueryClientProvider client={queryClient}>

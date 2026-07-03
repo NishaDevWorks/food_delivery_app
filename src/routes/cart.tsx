@@ -1,58 +1,40 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag, Banknote, Tag, X } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag, Banknote, Tag, X, ShieldCheck } from "lucide-react";
 import { MobileShell } from "@/components/MobileShell";
-import { RazorpayCheckout, type RzpMethod } from "@/components/RazorpayCheckout";
 import { useCart } from "@/lib/cart";
 import { findCoupon, COUPONS } from "@/lib/coupons";
-import { addOrder, type Order } from "@/lib/orders";
+import { addOrder, saveOrderToCloud, type Order } from "@/lib/orders";
+import { loadRazorpay, openRazorpay } from "@/lib/razorpay-client";
+import { createRazorpayOrder, verifyRazorpayPayment } from "@/lib/razorpay.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-
 export const Route = createFileRoute("/cart")({
-  head: () => ({
-    meta: [{ title: "Your Cart – QuickBite" }],
-  }),
+  head: () => ({ meta: [{ title: "Your Cart – QuickBite" }] }),
   component: CartPage,
 });
-
 
 function CartPage() {
   const { items, setQty, remove, total, clear } = useCart();
   const navigate = useNavigate();
-  const [payOpen, setPayOpen] = useState(false);
   const [paying, setPaying] = useState(false);
   const [code, setCode] = useState("");
   const [applied, setApplied] = useState<{ code: string; discount: number; freeDelivery: boolean } | null>(null);
 
-  const userPhone = (() => {
-    try {
-      const u = JSON.parse(localStorage.getItem("quickbite_user") || "null");
-      return u?.phone as string | undefined;
-    } catch { return undefined; }
-  })();
-
   const baseDelivery = items.length ? 30 : 0;
   const deliveryFee = applied?.freeDelivery ? 0 : baseDelivery;
-
   const discount = applied?.discount ?? 0;
   const grand = Math.max(0, total + deliveryFee - discount);
 
   function applyCoupon(input?: string) {
     const c = findCoupon(input ?? code);
-    if (!c) {
-      toast.error("Invalid coupon code");
-      return;
-    }
+    if (!c) return toast.error("Invalid coupon code");
     if (c.minOrder && total < c.minOrder) {
-      toast.error(`Add ₹${c.minOrder - total} more to use ${c.code}`);
-      return;
+      return toast.error(`Add ₹${c.minOrder - total} more to use ${c.code}`);
     }
     const result = c.apply(total, baseDelivery);
-    if (result.discount === 0 && !result.freeDelivery) {
-      toast.error("Coupon not applicable");
-      return;
-    }
+    if (result.discount === 0 && !result.freeDelivery) return toast.error("Coupon not applicable");
     setApplied({ code: c.code, discount: result.discount, freeDelivery: result.freeDelivery });
     setCode(c.code);
     toast.success(`${c.code} applied`);
@@ -63,14 +45,12 @@ function CartPage() {
     setCode("");
   }
 
-  function openPayment() {
-    if (!items.length) return;
-    setPayOpen(true);
-  }
-
-  function finalizeOrder(paymentLabel: string, isCod: boolean, txnMeta?: Record<string, string>) {
-    setPaying(true);
-    const txnId = "QB" + Math.random().toString(36).slice(2, 10).toUpperCase();
+  async function finalizeOrder(
+    paymentLabel: string,
+    isCod: boolean,
+    rzp?: { orderId: string; paymentId: string },
+  ) {
+    const txnId = rzp?.paymentId ?? "QB" + Math.random().toString(36).slice(2, 10).toUpperCase();
     const order: Order = {
       id: txnId,
       items,
@@ -79,37 +59,100 @@ function CartPage() {
       discount,
       total: grand,
       placedAt: Date.now(),
-      paymentMethod: paymentLabel + (txnMeta?.upiId ? ` (${txnMeta.upiId})` : txnMeta?.card ? ` (${txnMeta.card})` : txnMeta?.bank ? ` (${txnMeta.bank})` : txnMeta?.wallet ? ` (${txnMeta.wallet})` : txnMeta?.provider ? ` (${txnMeta.provider})` : ""),
+      paymentMethod: paymentLabel,
       paymentStatus: isCod ? "pending" : "paid",
       transactionId: isCod ? null : txnId,
+      razorpayOrderId: rzp?.orderId,
+      razorpayPaymentId: rzp?.paymentId,
       couponCode: applied?.code,
       restaurantName: items[0]?.restaurantName,
       status: "preparing",
     };
+
+    // Cloud sync first (get real UUID if signed in), fallback to local id.
+    const cloud = await saveOrderToCloud(order);
+    const finalOrder = cloud ?? order;
+
     try {
-      addOrder(order);
-      localStorage.setItem("quickbite_active_order", JSON.stringify(order));
+      addOrder(finalOrder);
+      localStorage.setItem("quickbite_active_order", JSON.stringify(finalOrder));
     } catch {}
+
     clear();
     setPaying(false);
-    setPayOpen(false);
     toast.success(isCod ? "Order placed! Pay cash on delivery." : `Payment successful via ${paymentLabel}`);
     navigate({ to: "/track" });
+  }
+
+  async function payOnline() {
+    if (!items.length) return;
+    setPaying(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        toast.error("Please sign in to pay online");
+        setPaying(false);
+        navigate({ to: "/" });
+        return;
+      }
+
+      // 1) Create order server-side
+      const { orderId, amount, currency, keyId } = await createRazorpayOrder({
+        data: { amount: grand, receipt: `qb_${Date.now()}` },
+      });
+
+      // 2) Load Razorpay Checkout.js
+      await loadRazorpay();
+
+      const meta = (userData.user.user_metadata ?? {}) as Record<string, string>;
+      const displayName = meta.full_name || meta.name || (userData.user.email?.split("@")[0] ?? "Customer");
+
+      // 3) Open the real Razorpay modal
+      const resp = await openRazorpay({
+        keyId,
+        orderId,
+        amount,
+        currency,
+        name: "QuickBite",
+        description: `${items.length} item${items.length > 1 ? "s" : ""} · ₹${grand}`,
+        prefill: {
+          name: displayName,
+          email: userData.user.email ?? undefined,
+        },
+        themeColor: "#8b5cf6",
+      });
+
+      // 4) Verify signature server-side
+      const { ok } = await verifyRazorpayPayment({
+        data: {
+          orderId: resp.razorpay_order_id,
+          paymentId: resp.razorpay_payment_id,
+          signature: resp.razorpay_signature,
+        },
+      });
+      if (!ok) {
+        toast.error("Payment verification failed. Please contact support.");
+        setPaying(false);
+        return;
+      }
+
+      const label = resp.method ? `Razorpay (${resp.method.toUpperCase()})` : "Razorpay";
+      await finalizeOrder(label, false, {
+        orderId: resp.razorpay_order_id,
+        paymentId: resp.razorpay_payment_id,
+      });
+    } catch (e: any) {
+      setPaying(false);
+      if (e?.message !== "Payment cancelled") {
+        toast.error(e?.message || "Payment failed");
+      }
+    }
   }
 
   function payCod() {
     if (!items.length) return;
     finalizeOrder("Cash on Delivery", true);
   }
-
-  const methodLabels: Record<RzpMethod, string> = {
-    upi: "UPI",
-    card: "Card",
-    netbanking: "Netbanking",
-    wallet: "Wallet",
-    paylater: "Pay Later",
-  };
-
 
   return (
     <MobileShell>
@@ -170,7 +213,6 @@ function CartPage() {
               ))}
             </div>
 
-            {/* Coupon section */}
             <div className="mt-5 bg-white/90 rounded-2xl p-4 shadow-sm">
               <div className="flex items-center gap-2">
                 <Tag className="w-4 h-4 text-violet-600" />
@@ -232,12 +274,22 @@ function CartPage() {
             </div>
 
             <button
-              onClick={openPayment}
+              onClick={payOnline}
               disabled={paying}
-              className="mt-5 w-full h-14 rounded-2xl bg-gradient-to-r from-violet-500 to-pink-500 text-white font-bold shadow-lg shadow-pink-200 active:scale-[0.98] transition disabled:opacity-60"
+              className="mt-5 w-full h-14 rounded-2xl bg-gradient-to-r from-violet-500 to-pink-500 text-white font-bold shadow-lg shadow-pink-200 active:scale-[0.98] transition disabled:opacity-60 flex items-center justify-center gap-2"
             >
-              Pay ₹{grand} online
+              {paying ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  Opening Razorpay…
+                </>
+              ) : (
+                <>Pay ₹{grand} online</>
+              )}
             </button>
+            <p className="mt-1 text-center text-[10px] text-slate-500 flex items-center justify-center gap-1">
+              <ShieldCheck className="w-3 h-3" /> Secure payment powered by Razorpay
+            </p>
             <button
               onClick={payCod}
               disabled={paying}
@@ -249,17 +301,6 @@ function CartPage() {
           </>
         )}
       </div>
-
-      <RazorpayCheckout
-        open={payOpen}
-        amount={grand}
-        phone={userPhone}
-        merchantName="QuickBite"
-        onClose={() => !paying && setPayOpen(false)}
-        onSuccess={(m, meta) => finalizeOrder(methodLabels[m], false, meta)}
-      />
-
-
     </MobileShell>
   );
 }

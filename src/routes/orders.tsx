@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Package, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MobileShell } from "@/components/MobileShell";
-import { loadOrders, type Order } from "@/lib/orders";
+import { loadOrders, fetchCloudOrders, type Order } from "@/lib/orders";
 
 export const Route = createFileRoute("/orders")({
   head: () => ({ meta: [{ title: "Order history – QuickBite" }] }),
@@ -33,7 +33,17 @@ function fmt(ts: number) {
 
 function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
-  useEffect(() => setOrders(loadOrders()), []);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      // Show local instantly, then reconcile with cloud.
+      setOrders(loadOrders());
+      const cloud = await fetchCloudOrders();
+      if (cloud) setOrders(cloud);
+      setLoading(false);
+    })();
+  }, []);
 
   return (
     <MobileShell>
@@ -45,7 +55,7 @@ function OrdersPage() {
           <h1 className="text-xl font-black text-slate-900">Order history</h1>
         </div>
 
-        {orders.length === 0 ? (
+        {orders.length === 0 && !loading ? (
           <div className="mt-20 flex flex-col items-center text-center">
             <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-violet-200 to-pink-200 flex items-center justify-center">
               <Package className="w-12 h-12 text-white" />
