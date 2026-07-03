@@ -116,9 +116,9 @@ export async function fetchCloudOrders(): Promise<Order[] | null> {
 async function syncUpdateOrder(id: string, patch: Partial<Order>) {
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return;
-  const dbPatch: Record<string, unknown> = {};
+  const dbPatch: { status?: string; payment_status?: string } = {};
   if (patch.status) dbPatch.status = patch.status;
   if (patch.paymentStatus) dbPatch.payment_status = patch.paymentStatus;
-  if (Object.keys(dbPatch).length === 0) return;
+  if (!dbPatch.status && !dbPatch.payment_status) return;
   await supabase.from("orders").update(dbPatch).eq("id", id);
 }
