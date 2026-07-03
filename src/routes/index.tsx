@@ -2,12 +2,14 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { UtensilsCrossed, MapPin, Mail, Lock, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "QuickBite – Sign in" },
-      { name: "description", content: "Sign in or sign up to QuickBite to order food from nearby restaurants." },
+      { name: "description", content: "Sign in to QuickBite with Google or email to order food from nearby restaurants." },
       { name: "viewport", content: "width=device-width, initial-scale=1.0" },
     ],
   }),
@@ -23,15 +25,13 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [locStatus, setLocStatus] = useState<"idle" | "granted" | "denied">("idle");
 
-  // Already signed in? Skip to home.
+  // If already signed in, jump to home.
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (localStorage.getItem("quickbite_user")) {
-      navigate({ to: "/home" });
-    }
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) navigate({ to: "/home" });
+    });
   }, [navigate]);
 
-  // Always ask for location on app open.
   useEffect(() => {
     if (typeof window === "undefined" || !("geolocation" in navigator)) return;
     const t = setTimeout(() => requestLocation(true), 500);
@@ -62,70 +62,57 @@ function LoginPage() {
     );
   }
 
-  function getAccounts(): Array<{ name: string; email: string; password: string }> {
-    try { return JSON.parse(localStorage.getItem("quickbite_accounts") || "[]"); } catch { return []; }
-  }
-  function saveAccounts(list: Array<{ name: string; email: string; password: string }>) {
-    try { localStorage.setItem("quickbite_accounts", JSON.stringify(list)); } catch {}
-  }
-  function persistUser(u: { name: string; email: string }) {
-    try { localStorage.setItem("quickbite_user", JSON.stringify(u)); } catch {}
-  }
-
-  function submitEmail() {
+  async function submitEmail() {
     if (!email || !password || (tab === "signup" && !name)) {
       toast.error("Please fill all fields");
       return;
     }
-    const accounts = getAccounts();
-    const existing = accounts.find((a) => a.email.toLowerCase() === email.toLowerCase());
-
-    if (tab === "signin") {
-      if (!existing) {
-        toast.error("No account found. Please sign up first.");
-        setTab("signup");
-        return;
-      }
-      if (existing.password !== password) {
-        toast.error("Incorrect password");
-        return;
-      }
-      setLoading(true);
-      setTimeout(() => {
-        persistUser({ name: existing.name, email: existing.email });
+    setLoading(true);
+    try {
+      if (tab === "signin") {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
         toast.success("Welcome back!");
         navigate({ to: "/home" });
-      }, 500);
-    } else {
-      if (existing) {
-        toast.error("Account already exists. Please sign in.");
-        setTab("signin");
-        return;
-      }
-      setLoading(true);
-      setTimeout(() => {
-        const next = [...accounts, { name, email, password }];
-        saveAccounts(next);
-        persistUser({ name, email });
+      } else {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/home`,
+            data: { full_name: name },
+          },
+        });
+        if (error) throw error;
         toast.success("Account created!");
         navigate({ to: "/home" });
-      }, 500);
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Authentication failed");
+    } finally {
+      setLoading(false);
     }
   }
 
-  function continueWithGoogle() {
+  async function continueWithGoogle() {
     setLoading(true);
-    setTimeout(() => {
-      const accounts = getAccounts();
-      const gEmail = "user@gmail.com";
-      if (!accounts.find((a) => a.email === gEmail)) {
-        saveAccounts([...accounts, { name: "Google User", email: gEmail, password: "" }]);
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        toast.error((result.error as any).message || "Google sign-in failed");
+        setLoading(false);
+        return;
       }
-      persistUser({ name: "Google User", email: gEmail });
+      if (result.redirected) return; // browser is redirecting
+      // Session was set inline (popup flow)
       navigate({ to: "/home" });
-    }, 500);
+    } catch (e: any) {
+      toast.error(e?.message || "Google sign-in failed");
+      setLoading(false);
+    }
   }
-
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-violet-200 via-pink-100 to-sky-200 flex items-center justify-center p-0 sm:p-6">
