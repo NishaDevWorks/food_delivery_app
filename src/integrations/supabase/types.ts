@@ -14,7 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      orders: {
+        Row: {
+          coupon_code: string | null
+          delivery_fee: number
+          discount: number
+          id: string
+          items: Json
+          payment_method: string
+          payment_status: string
+          placed_at: string
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          restaurant_name: string | null
+          status: string
+          subtotal: number
+          total: number
+          transaction_id: string | null
+          user_id: string
+        }
+        Insert: {
+          coupon_code?: string | null
+          delivery_fee?: number
+          discount?: number
+          id?: string
+          items: Json
+          payment_method: string
+          payment_status?: string
+          placed_at?: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          restaurant_name?: string | null
+          status?: string
+          subtotal: number
+          total: number
+          transaction_id?: string | null
+          user_id: string
+        }
+        Update: {
+          coupon_code?: string | null
+          delivery_fee?: number
+          discount?: number
+          id?: string
+          items?: Json
+          payment_method?: string
+          payment_status?: string
+          placed_at?: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          restaurant_name?: string | null
+          status?: string
+          subtotal?: number
+          total?: number
+          transaction_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
