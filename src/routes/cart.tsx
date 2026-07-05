@@ -330,6 +330,12 @@ function CartPage() {
           </>
         )}
       </div>
+      <RazorpayCheckout
+        open={mockOpen}
+        amount={grand}
+        onClose={() => setMockOpen(false)}
+        onSuccess={onMockSuccess}
+      />
     </MobileShell>
   );
 }
