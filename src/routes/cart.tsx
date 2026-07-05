@@ -20,6 +20,7 @@ function CartPage() {
   const { items, setQty, remove, total, clear } = useCart();
   const navigate = useNavigate();
   const [paying, setPaying] = useState(false);
+  const [mockOpen, setMockOpen] = useState(false);
   const [code, setCode] = useState("");
   const [applied, setApplied] = useState<{ code: string; discount: number; freeDelivery: boolean } | null>(null);
 
