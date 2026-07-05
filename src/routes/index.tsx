@@ -70,12 +70,13 @@ function LoginPage() {
     setLoading(true);
     try {
       if (tab === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        cacheUser(data.session?.user);
         toast.success("Welcome back!");
         navigate({ to: "/home" });
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -84,6 +85,11 @@ function LoginPage() {
           },
         });
         if (error) throw error;
+        if (!data.session) {
+          toast.success("Check your email to confirm your account");
+          return;
+        }
+        cacheUser(data.session.user);
         toast.success("Account created!");
         navigate({ to: "/home" });
       }
@@ -106,12 +112,29 @@ function LoginPage() {
         return;
       }
       if (result.redirected) return; // browser is redirecting
-      // Session was set inline (popup flow)
+      const { data } = await supabase.auth.getSession();
+      cacheUser(data.session?.user);
       navigate({ to: "/home" });
     } catch (e: any) {
       toast.error(e?.message || "Google sign-in failed");
       setLoading(false);
     }
+  }
+
+  function cacheUser(user: import("@supabase/supabase-js").User | undefined | null) {
+    if (!user) return;
+    try {
+      const meta = (user.user_metadata ?? {}) as Record<string, string>;
+      localStorage.setItem(
+        "quickbite_user",
+        JSON.stringify({
+          id: user.id,
+          name: meta.full_name || meta.name || user.email?.split("@")[0] || "User",
+          email: user.email ?? "",
+          avatar: meta.avatar_url || meta.picture || null,
+        }),
+      );
+    } catch {}
   }
 
   return (
