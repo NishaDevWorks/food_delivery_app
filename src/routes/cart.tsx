@@ -98,10 +98,23 @@ function CartPage() {
         return;
       }
 
-      // 1) Create order server-side
-      const { orderId, amount, currency, keyId } = await createRazorpayOrder({
-        data: { amount: grand, receipt: `qb_${Date.now()}` },
-      });
+      // 1) Try to create a real Razorpay order server-side
+      let orderInfo: { orderId: string; amount: number; currency: string; keyId: string };
+      try {
+        orderInfo = await createRazorpayOrder({
+          data: { amount: grand, receipt: `qb_${Date.now()}` },
+        });
+      } catch (e: any) {
+        // Fallback to demo checkout when keys are missing/invalid
+        const msg = String(e?.message || "");
+        if (msg.includes("Authentication failed") || msg.includes("not configured") || msg.includes("BAD_REQUEST_ERROR")) {
+          console.warn("Razorpay keys invalid — using demo checkout", msg);
+          setPaying(false);
+          setMockOpen(true);
+          return;
+        }
+        throw e;
+      }
 
       // 2) Load Razorpay Checkout.js
       await loadRazorpay();
@@ -111,10 +124,10 @@ function CartPage() {
 
       // 3) Open the real Razorpay modal
       const resp = await openRazorpay({
-        keyId,
-        orderId,
-        amount,
-        currency,
+        keyId: orderInfo.keyId,
+        orderId: orderInfo.orderId,
+        amount: orderInfo.amount,
+        currency: orderInfo.currency,
         name: "QuickBite",
         description: `${items.length} item${items.length > 1 ? "s" : ""} · ₹${grand}`,
         prefill: {
@@ -150,6 +163,20 @@ function CartPage() {
       }
     }
   }
+
+  function onMockSuccess(method: RzpMethod, meta: Record<string, string>) {
+    setMockOpen(false);
+    const label =
+      method === "upi" ? `UPI (${meta.upiId ?? ""})` :
+      method === "card" ? `Card (•••• ${(meta.cardNum ?? "").slice(-4)})` :
+      method === "netbanking" ? `Netbanking (${meta.bank ?? ""})` :
+      method === "wallet" ? `Wallet (${meta.wallet ?? ""})` :
+      `Pay Later (${meta.paylater ?? ""})`;
+    const paymentId = "pay_demo_" + Math.random().toString(36).slice(2, 12);
+    const orderId = "order_demo_" + Math.random().toString(36).slice(2, 12);
+    finalizeOrder(label, false, { orderId, paymentId });
+  }
+
 
   function payCod() {
     if (!items.length) return;
