@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      menu_items: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          emoji: string | null
+          id: string
+          image: string | null
+          in_stock: boolean
+          is_veg: boolean
+          name: string
+          price: number
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          image?: string | null
+          in_stock?: boolean
+          is_veg?: boolean
+          name: string
+          price: number
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          emoji?: string | null
+          id?: string
+          image?: string | null
+          in_stock?: boolean
+          is_veg?: boolean
+          name?: string
+          price?: number
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           coupon_code: string | null
@@ -26,6 +71,7 @@ export type Database = {
           placed_at: string
           razorpay_order_id: string | null
           razorpay_payment_id: string | null
+          restaurant_id: string | null
           restaurant_name: string | null
           status: string
           subtotal: number
@@ -44,6 +90,7 @@ export type Database = {
           placed_at?: string
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
+          restaurant_id?: string | null
           restaurant_name?: string | null
           status?: string
           subtotal: number
@@ -62,6 +109,7 @@ export type Database = {
           placed_at?: string
           razorpay_order_id?: string | null
           razorpay_payment_id?: string | null
+          restaurant_id?: string | null
           restaurant_name?: string | null
           status?: string
           subtotal?: number
@@ -98,15 +146,104 @@ export type Database = {
         }
         Relationships: []
       }
+      restaurant_owners: {
+        Row: {
+          created_at: string
+          id: string
+          restaurant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          restaurant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          restaurant_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      restaurant_settings: {
+        Row: {
+          address: string | null
+          cover_image: string | null
+          is_open: boolean
+          min_order: number
+          phone: string | null
+          prep_time_min: number
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          cover_image?: string | null
+          is_open?: boolean
+          min_order?: number
+          phone?: string | null
+          prep_time_min?: number
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          cover_image?: string | null
+          is_open?: boolean
+          min_order?: number
+          phone?: string | null
+          prep_time_min?: number
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      claim_restaurant_ownership: {
+        Args: { _restaurant_id: string }
+        Returns: undefined
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      owns_restaurant: {
+        Args: { _restaurant_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "owner" | "customer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -233,6 +370,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "owner", "customer"],
+    },
   },
 } as const
