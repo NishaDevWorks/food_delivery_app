@@ -25,6 +25,7 @@ import { Route as RestaurantIdRouteImport } from './routes/restaurant.$id'
 import { Route as OwnerSettingsRouteImport } from './routes/owner.settings'
 import { Route as OwnerOrdersRouteImport } from './routes/owner.orders'
 import { Route as OwnerMenuRouteImport } from './routes/owner.menu'
+import { Route as OwnerAnalyticsRouteImport } from './routes/owner.analytics'
 
 const TrackRoute = TrackRouteImport.update({
   id: '/track',
@@ -106,6 +107,11 @@ const OwnerMenuRoute = OwnerMenuRouteImport.update({
   path: '/menu',
   getParentRoute: () => OwnerRoute,
 } as any)
+const OwnerAnalyticsRoute = OwnerAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => OwnerRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -120,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/payments': typeof PaymentsRoute
   '/profile': typeof ProfileRoute
   '/track': typeof TrackRoute
+  '/owner/analytics': typeof OwnerAnalyticsRoute
   '/owner/menu': typeof OwnerMenuRoute
   '/owner/orders': typeof OwnerOrdersRoute
   '/owner/settings': typeof OwnerSettingsRoute
@@ -138,6 +145,7 @@ export interface FileRoutesByTo {
   '/payments': typeof PaymentsRoute
   '/profile': typeof ProfileRoute
   '/track': typeof TrackRoute
+  '/owner/analytics': typeof OwnerAnalyticsRoute
   '/owner/menu': typeof OwnerMenuRoute
   '/owner/orders': typeof OwnerOrdersRoute
   '/owner/settings': typeof OwnerSettingsRoute
@@ -157,6 +165,7 @@ export interface FileRoutesById {
   '/payments': typeof PaymentsRoute
   '/profile': typeof ProfileRoute
   '/track': typeof TrackRoute
+  '/owner/analytics': typeof OwnerAnalyticsRoute
   '/owner/menu': typeof OwnerMenuRoute
   '/owner/orders': typeof OwnerOrdersRoute
   '/owner/settings': typeof OwnerSettingsRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/payments'
     | '/profile'
     | '/track'
+    | '/owner/analytics'
     | '/owner/menu'
     | '/owner/orders'
     | '/owner/settings'
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
     | '/payments'
     | '/profile'
     | '/track'
+    | '/owner/analytics'
     | '/owner/menu'
     | '/owner/orders'
     | '/owner/settings'
@@ -213,6 +224,7 @@ export interface FileRouteTypes {
     | '/payments'
     | '/profile'
     | '/track'
+    | '/owner/analytics'
     | '/owner/menu'
     | '/owner/orders'
     | '/owner/settings'
@@ -349,16 +361,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OwnerMenuRouteImport
       parentRoute: typeof OwnerRoute
     }
+    '/owner/analytics': {
+      id: '/owner/analytics'
+      path: '/analytics'
+      fullPath: '/owner/analytics'
+      preLoaderRoute: typeof OwnerAnalyticsRouteImport
+      parentRoute: typeof OwnerRoute
+    }
   }
 }
 
 interface OwnerRouteChildren {
+  OwnerAnalyticsRoute: typeof OwnerAnalyticsRoute
   OwnerMenuRoute: typeof OwnerMenuRoute
   OwnerOrdersRoute: typeof OwnerOrdersRoute
   OwnerSettingsRoute: typeof OwnerSettingsRoute
 }
 
 const OwnerRouteChildren: OwnerRouteChildren = {
+  OwnerAnalyticsRoute: OwnerAnalyticsRoute,
   OwnerMenuRoute: OwnerMenuRoute,
   OwnerOrdersRoute: OwnerOrdersRoute,
   OwnerSettingsRoute: OwnerSettingsRoute,
