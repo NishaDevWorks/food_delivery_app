@@ -93,8 +93,9 @@ export async function saveOrderToCloud(order: Order): Promise<Order | null> {
       razorpay_payment_id: order.razorpayPaymentId ?? null,
       coupon_code: order.couponCode ?? null,
       restaurant_name: order.restaurantName ?? null,
+      restaurant_id: (order.items[0] as any)?.restaurantId ?? null,
       status: order.status,
-    })
+    } as any)
     .select()
     .single();
   if (error || !data) return null;
