@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Phone, MessageCircle, CheckCircle2, Star } from "lucide-react";
+import { ArrowLeft, Phone, MessageCircle, CheckCircle2, Star, Radio } from "lucide-react";
 import { MobileShell } from "@/components/MobileShell";
 import { useEffect, useRef, useState } from "react";
 import { addReview } from "@/lib/reviews";
 import { updateOrder } from "@/lib/orders";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -50,6 +51,7 @@ function TrackPage() {
   const [comment, setComment] = useState("");
   const [reviewed, setReviewed] = useState(false);
   const [activeOrder, setActiveOrder] = useState<any>(null);
+  const [liveConnected, setLiveConnected] = useState(false);
 
   useEffect(() => {
     try {
@@ -57,6 +59,34 @@ function TrackPage() {
       if (raw) setActiveOrder(JSON.parse(raw));
     } catch {}
   }, []);
+
+  // Realtime sync: reflect status changes made from any device
+  useEffect(() => {
+    if (!activeOrder?.id) return;
+    const isUuid = /^[0-9a-f-]{36}$/i.test(activeOrder.id);
+    if (!isUuid) return; // local-only order (not synced to cloud)
+
+    const channel = supabase
+      .channel(`order-${activeOrder.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${activeOrder.id}` },
+        (payload) => {
+          const row: any = payload.new;
+          const remoteStatus = row.status as "preparing" | "out_for_delivery" | "delivered";
+          if (remoteStatus === "delivered") setStepIdx(3);
+          else if (remoteStatus === "out_for_delivery") setStepIdx((s) => Math.max(s, 2));
+          const merged = { ...activeOrder, status: remoteStatus, paymentStatus: row.payment_status };
+          setActiveOrder(merged);
+          try { localStorage.setItem("quickbite_active_order", JSON.stringify(merged)); } catch {}
+        },
+      )
+      .subscribe((status) => setLiveConnected(status === "SUBSCRIBED"));
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeOrder?.id]);
 
   useEffect(() => {
     let mounted = true;
@@ -199,7 +229,14 @@ function TrackPage() {
         <div className="bg-white rounded-3xl p-5 shadow-xl">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-slate-500">{delivered ? "Status" : "Arriving in"}</p>
+              <p className="text-xs text-slate-500 flex items-center gap-1">
+                {delivered ? "Status" : "Arriving in"}
+                {liveConnected && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                    <Radio className="w-2.5 h-2.5" /> LIVE
+                  </span>
+                )}
+              </p>
               <p className="text-2xl font-black text-slate-900">
                 {delivered ? "Delivered 🎉" : `${etaMin} min`}
               </p>
