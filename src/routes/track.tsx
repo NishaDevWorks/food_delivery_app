@@ -51,6 +51,7 @@ function TrackPage() {
   const [comment, setComment] = useState("");
   const [reviewed, setReviewed] = useState(false);
   const [activeOrder, setActiveOrder] = useState<any>(null);
+  const [liveConnected, setLiveConnected] = useState(false);
 
   useEffect(() => {
     try {
@@ -58,6 +59,34 @@ function TrackPage() {
       if (raw) setActiveOrder(JSON.parse(raw));
     } catch {}
   }, []);
+
+  // Realtime sync: reflect status changes made from any device
+  useEffect(() => {
+    if (!activeOrder?.id) return;
+    const isUuid = /^[0-9a-f-]{36}$/i.test(activeOrder.id);
+    if (!isUuid) return; // local-only order (not synced to cloud)
+
+    const channel = supabase
+      .channel(`order-${activeOrder.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${activeOrder.id}` },
+        (payload) => {
+          const row: any = payload.new;
+          const remoteStatus = row.status as "preparing" | "out_for_delivery" | "delivered";
+          if (remoteStatus === "delivered") setStepIdx(3);
+          else if (remoteStatus === "out_for_delivery") setStepIdx((s) => Math.max(s, 2));
+          const merged = { ...activeOrder, status: remoteStatus, paymentStatus: row.payment_status };
+          setActiveOrder(merged);
+          try { localStorage.setItem("quickbite_active_order", JSON.stringify(merged)); } catch {}
+        },
+      )
+      .subscribe((status) => setLiveConnected(status === "SUBSCRIBED"));
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeOrder?.id]);
 
   useEffect(() => {
     let mounted = true;
