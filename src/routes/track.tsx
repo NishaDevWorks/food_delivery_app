@@ -229,7 +229,14 @@ function TrackPage() {
         <div className="bg-white rounded-3xl p-5 shadow-xl">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-slate-500">{delivered ? "Status" : "Arriving in"}</p>
+              <p className="text-xs text-slate-500 flex items-center gap-1">
+                {delivered ? "Status" : "Arriving in"}
+                {liveConnected && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
+                    <Radio className="w-2.5 h-2.5" /> LIVE
+                  </span>
+                )}
+              </p>
               <p className="text-2xl font-black text-slate-900">
                 {delivered ? "Delivered 🎉" : `${etaMin} min`}
               </p>
