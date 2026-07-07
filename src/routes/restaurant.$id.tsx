@@ -1,12 +1,13 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, Star, Clock, Plus, Heart } from "lucide-react";
+import { ArrowLeft, Star, Clock, Plus, Heart, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MobileShell } from "@/components/MobileShell";
 import { findRestaurant, type Dish } from "@/lib/data";
 import { useCustomDishes } from "@/lib/owner";
 import { useCart } from "@/lib/cart";
 import { useFavorites } from "@/lib/favorites";
-import { reviewsFor, avgRating, type Review } from "@/lib/reviews";
+import { reviewsFor, refreshReviewsFor, addReview, avgRating, type Review } from "@/lib/reviews";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/restaurant/$id")({
@@ -41,11 +42,40 @@ function RestaurantPage() {
   const { isDishFav, toggleDish, isRestaurantFav, toggleRestaurant } = useFavorites();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [avg, setAvg] = useState(r.rating);
+  const [showForm, setShowForm] = useState(false);
+  const [newRating, setNewRating] = useState(5);
+  const [newComment, setNewComment] = useState("");
+  const [posting, setPosting] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
     setReviews(reviewsFor(r.id));
     setAvg(avgRating(r.id, r.rating));
+    refreshReviewsFor(r.id).then((list) => {
+      setReviews(list);
+      setAvg(avgRating(r.id, r.rating));
+    }).catch(() => {});
+    supabase.auth.getUser().then(({ data }) => setSignedIn(!!data.user));
   }, [r.id, r.rating]);
+
+  async function submitReview() {
+    if (!newComment.trim() && newRating === 0) return;
+    setPosting(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const meta = (userData.user?.user_metadata ?? {}) as any;
+      const author = meta.full_name || meta.name || userData.user?.email?.split("@")[0] || "Customer";
+      await addReview({ restaurantId: r.id, rating: newRating, comment: newComment.trim(), author });
+      setReviews(reviewsFor(r.id));
+      setAvg(avgRating(r.id, r.rating));
+      setNewComment("");
+      setNewRating(5);
+      setShowForm(false);
+      toast.success("Thanks for your review!");
+    } catch (e: any) {
+      toast.error(e.message || "Could not post review");
+    } finally { setPosting(false); }
+  }
 
   const restFav = isRestaurantFav(r.id);
 
