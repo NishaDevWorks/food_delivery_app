@@ -86,6 +86,8 @@ function CartPage() {
       localStorage.setItem("quickbite_active_order", JSON.stringify(finalOrder));
     } catch {}
 
+    if (applied?.code) bumpCouponUsage(applied.code).catch(() => {});
+
     clear();
     setPaying(false);
     toast.success(isCod ? "Order placed! Pay cash on delivery." : `Payment successful via ${paymentLabel}`);
