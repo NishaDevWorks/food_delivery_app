@@ -15,6 +15,7 @@ import { Route as PaymentsRouteImport } from './routes/payments'
 import { Route as OwnerRouteImport } from './routes/owner'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as NotificationsRouteImport } from './routes/notifications'
+import { Route as InvoicesRouteImport } from './routes/invoices'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as HelpRouteImport } from './routes/help'
 import { Route as FavoritesRouteImport } from './routes/favorites'
@@ -23,9 +24,13 @@ import { Route as AddressesRouteImport } from './routes/addresses'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RestaurantIdRouteImport } from './routes/restaurant.$id'
 import { Route as OwnerSettingsRouteImport } from './routes/owner.settings'
+import { Route as OwnerReviewsRouteImport } from './routes/owner.reviews'
 import { Route as OwnerOrdersRouteImport } from './routes/owner.orders'
+import { Route as OwnerNotificationsRouteImport } from './routes/owner.notifications'
 import { Route as OwnerMenuRouteImport } from './routes/owner.menu'
+import { Route as OwnerCouponsRouteImport } from './routes/owner.coupons'
 import { Route as OwnerAnalyticsRouteImport } from './routes/owner.analytics'
+import { Route as InvoiceIdRouteImport } from './routes/invoice.$id'
 
 const TrackRoute = TrackRouteImport.update({
   id: '/track',
@@ -55,6 +60,11 @@ const OrdersRoute = OrdersRouteImport.update({
 const NotificationsRoute = NotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InvoicesRoute = InvoicesRouteImport.update({
+  id: '/invoices',
+  path: '/invoices',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HomeRoute = HomeRouteImport.update({
@@ -97,9 +107,19 @@ const OwnerSettingsRoute = OwnerSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => OwnerRoute,
 } as any)
+const OwnerReviewsRoute = OwnerReviewsRouteImport.update({
+  id: '/reviews',
+  path: '/reviews',
+  getParentRoute: () => OwnerRoute,
+} as any)
 const OwnerOrdersRoute = OwnerOrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
+  getParentRoute: () => OwnerRoute,
+} as any)
+const OwnerNotificationsRoute = OwnerNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => OwnerRoute,
 } as any)
 const OwnerMenuRoute = OwnerMenuRouteImport.update({
@@ -107,10 +127,20 @@ const OwnerMenuRoute = OwnerMenuRouteImport.update({
   path: '/menu',
   getParentRoute: () => OwnerRoute,
 } as any)
+const OwnerCouponsRoute = OwnerCouponsRouteImport.update({
+  id: '/coupons',
+  path: '/coupons',
+  getParentRoute: () => OwnerRoute,
+} as any)
 const OwnerAnalyticsRoute = OwnerAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
   getParentRoute: () => OwnerRoute,
+} as any)
+const InvoiceIdRoute = InvoiceIdRouteImport.update({
+  id: '/invoice/$id',
+  path: '/invoice/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -120,15 +150,20 @@ export interface FileRoutesByFullPath {
   '/favorites': typeof FavoritesRoute
   '/help': typeof HelpRoute
   '/home': typeof HomeRoute
+  '/invoices': typeof InvoicesRoute
   '/notifications': typeof NotificationsRoute
   '/orders': typeof OrdersRoute
   '/owner': typeof OwnerRouteWithChildren
   '/payments': typeof PaymentsRoute
   '/profile': typeof ProfileRoute
   '/track': typeof TrackRoute
+  '/invoice/$id': typeof InvoiceIdRoute
   '/owner/analytics': typeof OwnerAnalyticsRoute
+  '/owner/coupons': typeof OwnerCouponsRoute
   '/owner/menu': typeof OwnerMenuRoute
+  '/owner/notifications': typeof OwnerNotificationsRoute
   '/owner/orders': typeof OwnerOrdersRoute
+  '/owner/reviews': typeof OwnerReviewsRoute
   '/owner/settings': typeof OwnerSettingsRoute
   '/restaurant/$id': typeof RestaurantIdRoute
 }
@@ -139,15 +174,20 @@ export interface FileRoutesByTo {
   '/favorites': typeof FavoritesRoute
   '/help': typeof HelpRoute
   '/home': typeof HomeRoute
+  '/invoices': typeof InvoicesRoute
   '/notifications': typeof NotificationsRoute
   '/orders': typeof OrdersRoute
   '/owner': typeof OwnerRouteWithChildren
   '/payments': typeof PaymentsRoute
   '/profile': typeof ProfileRoute
   '/track': typeof TrackRoute
+  '/invoice/$id': typeof InvoiceIdRoute
   '/owner/analytics': typeof OwnerAnalyticsRoute
+  '/owner/coupons': typeof OwnerCouponsRoute
   '/owner/menu': typeof OwnerMenuRoute
+  '/owner/notifications': typeof OwnerNotificationsRoute
   '/owner/orders': typeof OwnerOrdersRoute
+  '/owner/reviews': typeof OwnerReviewsRoute
   '/owner/settings': typeof OwnerSettingsRoute
   '/restaurant/$id': typeof RestaurantIdRoute
 }
@@ -159,15 +199,20 @@ export interface FileRoutesById {
   '/favorites': typeof FavoritesRoute
   '/help': typeof HelpRoute
   '/home': typeof HomeRoute
+  '/invoices': typeof InvoicesRoute
   '/notifications': typeof NotificationsRoute
   '/orders': typeof OrdersRoute
   '/owner': typeof OwnerRouteWithChildren
   '/payments': typeof PaymentsRoute
   '/profile': typeof ProfileRoute
   '/track': typeof TrackRoute
+  '/invoice/$id': typeof InvoiceIdRoute
   '/owner/analytics': typeof OwnerAnalyticsRoute
+  '/owner/coupons': typeof OwnerCouponsRoute
   '/owner/menu': typeof OwnerMenuRoute
+  '/owner/notifications': typeof OwnerNotificationsRoute
   '/owner/orders': typeof OwnerOrdersRoute
+  '/owner/reviews': typeof OwnerReviewsRoute
   '/owner/settings': typeof OwnerSettingsRoute
   '/restaurant/$id': typeof RestaurantIdRoute
 }
@@ -180,15 +225,20 @@ export interface FileRouteTypes {
     | '/favorites'
     | '/help'
     | '/home'
+    | '/invoices'
     | '/notifications'
     | '/orders'
     | '/owner'
     | '/payments'
     | '/profile'
     | '/track'
+    | '/invoice/$id'
     | '/owner/analytics'
+    | '/owner/coupons'
     | '/owner/menu'
+    | '/owner/notifications'
     | '/owner/orders'
+    | '/owner/reviews'
     | '/owner/settings'
     | '/restaurant/$id'
   fileRoutesByTo: FileRoutesByTo
@@ -199,15 +249,20 @@ export interface FileRouteTypes {
     | '/favorites'
     | '/help'
     | '/home'
+    | '/invoices'
     | '/notifications'
     | '/orders'
     | '/owner'
     | '/payments'
     | '/profile'
     | '/track'
+    | '/invoice/$id'
     | '/owner/analytics'
+    | '/owner/coupons'
     | '/owner/menu'
+    | '/owner/notifications'
     | '/owner/orders'
+    | '/owner/reviews'
     | '/owner/settings'
     | '/restaurant/$id'
   id:
@@ -218,15 +273,20 @@ export interface FileRouteTypes {
     | '/favorites'
     | '/help'
     | '/home'
+    | '/invoices'
     | '/notifications'
     | '/orders'
     | '/owner'
     | '/payments'
     | '/profile'
     | '/track'
+    | '/invoice/$id'
     | '/owner/analytics'
+    | '/owner/coupons'
     | '/owner/menu'
+    | '/owner/notifications'
     | '/owner/orders'
+    | '/owner/reviews'
     | '/owner/settings'
     | '/restaurant/$id'
   fileRoutesById: FileRoutesById
@@ -238,12 +298,14 @@ export interface RootRouteChildren {
   FavoritesRoute: typeof FavoritesRoute
   HelpRoute: typeof HelpRoute
   HomeRoute: typeof HomeRoute
+  InvoicesRoute: typeof InvoicesRoute
   NotificationsRoute: typeof NotificationsRoute
   OrdersRoute: typeof OrdersRoute
   OwnerRoute: typeof OwnerRouteWithChildren
   PaymentsRoute: typeof PaymentsRoute
   ProfileRoute: typeof ProfileRoute
   TrackRoute: typeof TrackRoute
+  InvoiceIdRoute: typeof InvoiceIdRoute
   RestaurantIdRoute: typeof RestaurantIdRoute
 }
 
@@ -289,6 +351,13 @@ declare module '@tanstack/react-router' {
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof NotificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invoices': {
+      id: '/invoices'
+      path: '/invoices'
+      fullPath: '/invoices'
+      preLoaderRoute: typeof InvoicesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/home': {
@@ -347,11 +416,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OwnerSettingsRouteImport
       parentRoute: typeof OwnerRoute
     }
+    '/owner/reviews': {
+      id: '/owner/reviews'
+      path: '/reviews'
+      fullPath: '/owner/reviews'
+      preLoaderRoute: typeof OwnerReviewsRouteImport
+      parentRoute: typeof OwnerRoute
+    }
     '/owner/orders': {
       id: '/owner/orders'
       path: '/orders'
       fullPath: '/owner/orders'
       preLoaderRoute: typeof OwnerOrdersRouteImport
+      parentRoute: typeof OwnerRoute
+    }
+    '/owner/notifications': {
+      id: '/owner/notifications'
+      path: '/notifications'
+      fullPath: '/owner/notifications'
+      preLoaderRoute: typeof OwnerNotificationsRouteImport
       parentRoute: typeof OwnerRoute
     }
     '/owner/menu': {
@@ -361,6 +444,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OwnerMenuRouteImport
       parentRoute: typeof OwnerRoute
     }
+    '/owner/coupons': {
+      id: '/owner/coupons'
+      path: '/coupons'
+      fullPath: '/owner/coupons'
+      preLoaderRoute: typeof OwnerCouponsRouteImport
+      parentRoute: typeof OwnerRoute
+    }
     '/owner/analytics': {
       id: '/owner/analytics'
       path: '/analytics'
@@ -368,20 +458,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OwnerAnalyticsRouteImport
       parentRoute: typeof OwnerRoute
     }
+    '/invoice/$id': {
+      id: '/invoice/$id'
+      path: '/invoice/$id'
+      fullPath: '/invoice/$id'
+      preLoaderRoute: typeof InvoiceIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface OwnerRouteChildren {
   OwnerAnalyticsRoute: typeof OwnerAnalyticsRoute
+  OwnerCouponsRoute: typeof OwnerCouponsRoute
   OwnerMenuRoute: typeof OwnerMenuRoute
+  OwnerNotificationsRoute: typeof OwnerNotificationsRoute
   OwnerOrdersRoute: typeof OwnerOrdersRoute
+  OwnerReviewsRoute: typeof OwnerReviewsRoute
   OwnerSettingsRoute: typeof OwnerSettingsRoute
 }
 
 const OwnerRouteChildren: OwnerRouteChildren = {
   OwnerAnalyticsRoute: OwnerAnalyticsRoute,
+  OwnerCouponsRoute: OwnerCouponsRoute,
   OwnerMenuRoute: OwnerMenuRoute,
+  OwnerNotificationsRoute: OwnerNotificationsRoute,
   OwnerOrdersRoute: OwnerOrdersRoute,
+  OwnerReviewsRoute: OwnerReviewsRoute,
   OwnerSettingsRoute: OwnerSettingsRoute,
 }
 
@@ -394,12 +497,14 @@ const rootRouteChildren: RootRouteChildren = {
   FavoritesRoute: FavoritesRoute,
   HelpRoute: HelpRoute,
   HomeRoute: HomeRoute,
+  InvoicesRoute: InvoicesRoute,
   NotificationsRoute: NotificationsRoute,
   OrdersRoute: OrdersRoute,
   OwnerRoute: OwnerRouteWithChildren,
   PaymentsRoute: PaymentsRoute,
   ProfileRoute: ProfileRoute,
   TrackRoute: TrackRoute,
+  InvoiceIdRoute: InvoiceIdRoute,
   RestaurantIdRoute: RestaurantIdRoute,
 }
 export const routeTree = rootRouteImport

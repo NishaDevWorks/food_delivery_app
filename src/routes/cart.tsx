@@ -1,10 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag, Banknote, Tag, X, ShieldCheck } from "lucide-react";
 import { MobileShell } from "@/components/MobileShell";
 import { RazorpayCheckout, type RzpMethod } from "@/components/RazorpayCheckout";
 import { useCart } from "@/lib/cart";
-import { findCoupon, COUPONS } from "@/lib/coupons";
+import { findCoupon, fetchAvailableCoupons, bumpCouponUsage, type Coupon } from "@/lib/coupons";
 import { addOrder, saveOrderToCloud, type Order } from "@/lib/orders";
 import { loadRazorpay, openRazorpay } from "@/lib/razorpay-client";
 import { createRazorpayOrder, verifyRazorpayPayment } from "@/lib/razorpay.functions";
