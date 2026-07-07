@@ -282,7 +282,7 @@ function CartPage() {
                     </button>
                   </div>
                   <div className="mt-3 space-y-1">
-                    {COUPONS.map((c) => (
+                    {available.map((c: Coupon) => (
                       <button
                         key={c.code}
                         onClick={() => applyCoupon(c.code)}
