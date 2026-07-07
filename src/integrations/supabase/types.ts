@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      coupons: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          description: string
+          expires_at: string | null
+          id: string
+          max_discount: number | null
+          min_order: number
+          restaurant_id: string | null
+          type: string
+          updated_at: string
+          usage_limit: number | null
+          used_count: number
+          value: number
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          description?: string
+          expires_at?: string | null
+          id?: string
+          max_discount?: number | null
+          min_order?: number
+          restaurant_id?: string | null
+          type: string
+          updated_at?: string
+          usage_limit?: number | null
+          used_count?: number
+          value?: number
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          description?: string
+          expires_at?: string | null
+          id?: string
+          max_discount?: number | null
+          min_order?: number
+          restaurant_id?: string | null
+          type?: string
+          updated_at?: string
+          usage_limit?: number | null
+          used_count?: number
+          value?: number
+        }
+        Relationships: []
+      }
       menu_items: {
         Row: {
           category: string
@@ -56,6 +107,39 @@ export type Database = {
           price?: number
           restaurant_id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          link: string | null
+          read: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          read?: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          link?: string | null
+          read?: boolean
+          title?: string
+          type?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -199,6 +283,56 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      reviews: {
+        Row: {
+          author: string | null
+          comment: string | null
+          created_at: string
+          id: string
+          order_id: string | null
+          rating: number
+          reply: string | null
+          restaurant_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          author?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          rating: number
+          reply?: string | null
+          restaurant_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          author?: string | null
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          rating?: number
+          reply?: string | null
+          restaurant_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
