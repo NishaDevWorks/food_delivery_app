@@ -171,28 +171,63 @@ function RestaurantPage() {
           })}
         </div>
 
-        {reviews.length > 0 && (
-          <>
-            <h2 className="mt-6 font-bold text-slate-800">Reviews ({reviews.length})</h2>
-            <div className="mt-3 space-y-2">
-              {reviews.slice(0, 5).map((rv) => (
-                <div key={rv.id} className="bg-white/90 rounded-2xl p-3 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-slate-800">{rv.author}</p>
-                    <div className="flex items-center gap-0.5">
-                      {[1, 2, 3, 4, 5].map((n) => (
-                        <Star
-                          key={n}
-                          className={`w-3 h-3 ${n <= rv.rating ? "fill-amber-400 text-amber-400" : "text-slate-300"}`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  {rv.comment && <p className="mt-1 text-xs text-slate-600">{rv.comment}</p>}
-                </div>
+        <div className="mt-6 flex items-center justify-between">
+          <h2 className="font-bold text-slate-800">Reviews ({reviews.length})</h2>
+          {signedIn && (
+            <button onClick={() => setShowForm((v) => !v)} className="text-xs font-semibold text-violet-600">
+              {showForm ? "Cancel" : "Write a review"}
+            </button>
+          )}
+        </div>
+
+        {showForm && (
+          <div className="mt-2 bg-white/95 rounded-2xl p-3 shadow-sm">
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button key={n} onClick={() => setNewRating(n)}>
+                  <Star className={`w-6 h-6 ${n <= newRating ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} />
+                </button>
               ))}
             </div>
-          </>
+            <textarea
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Share your experience…"
+              rows={3}
+              className="mt-2 w-full rounded-xl border border-slate-200 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
+            />
+            <button
+              onClick={submitReview}
+              disabled={posting}
+              className="mt-2 w-full h-10 rounded-xl bg-gradient-to-r from-violet-500 to-pink-500 text-white text-sm font-bold flex items-center justify-center gap-1 disabled:opacity-60"
+            >
+              <Send className="w-3.5 h-3.5" /> {posting ? "Posting…" : "Post review"}
+            </button>
+          </div>
+        )}
+
+        {reviews.length > 0 && (
+          <div className="mt-3 space-y-2">
+            {reviews.slice(0, 10).map((rv) => (
+              <div key={rv.id} className="bg-white/90 rounded-2xl p-3 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-slate-800">{rv.author}</p>
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <Star key={n} className={`w-3 h-3 ${n <= rv.rating ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} />
+                    ))}
+                  </div>
+                </div>
+                {rv.comment && <p className="mt-1 text-xs text-slate-600">{rv.comment}</p>}
+                {rv.reply && (
+                  <div className="mt-2 bg-violet-50 border-l-2 border-violet-400 p-2 rounded">
+                    <p className="text-[10px] font-bold text-violet-700 uppercase">Owner reply</p>
+                    <p className="text-xs text-slate-700 mt-0.5">{rv.reply}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         )}
         <div className="h-6" />
       </div>

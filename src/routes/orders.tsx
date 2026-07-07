@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Package, RotateCcw } from "lucide-react";
+import { ArrowLeft, Package, RotateCcw, FileText } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MobileShell } from "@/components/MobileShell";
 import { loadOrders, fetchCloudOrders, type Order } from "@/lib/orders";
@@ -102,12 +102,21 @@ function OrdersPage() {
                     <p className="text-[11px] text-slate-500">{o.paymentMethod}</p>
                     <p className="font-bold text-slate-900">₹{o.total}</p>
                   </div>
-                  <button
-                    className="text-xs font-semibold text-violet-600 flex items-center gap-1"
-                    onClick={() => alert("Reorder coming soon")}
-                  >
-                    <RotateCcw className="w-3 h-3" /> Reorder
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      to="/invoice/$id"
+                      params={{ id: o.id }}
+                      className="text-xs font-semibold text-slate-600 flex items-center gap-1"
+                    >
+                      <FileText className="w-3 h-3" /> Invoice
+                    </Link>
+                    <button
+                      className="text-xs font-semibold text-violet-600 flex items-center gap-1"
+                      onClick={() => alert("Reorder coming soon")}
+                    >
+                      <RotateCcw className="w-3 h-3" /> Reorder
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
