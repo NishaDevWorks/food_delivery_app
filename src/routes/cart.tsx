@@ -1,10 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag, Banknote, Tag, X, ShieldCheck } from "lucide-react";
 import { MobileShell } from "@/components/MobileShell";
 import { RazorpayCheckout, type RzpMethod } from "@/components/RazorpayCheckout";
 import { useCart } from "@/lib/cart";
-import { findCoupon, COUPONS } from "@/lib/coupons";
+import { findCoupon, fetchAvailableCoupons, bumpCouponUsage, type Coupon } from "@/lib/coupons";
 import { addOrder, saveOrderToCloud, type Order } from "@/lib/orders";
 import { loadRazorpay, openRazorpay } from "@/lib/razorpay-client";
 import { createRazorpayOrder, verifyRazorpayPayment } from "@/lib/razorpay.functions";
@@ -23,14 +23,20 @@ function CartPage() {
   const [mockOpen, setMockOpen] = useState(false);
   const [code, setCode] = useState("");
   const [applied, setApplied] = useState<{ code: string; discount: number; freeDelivery: boolean } | null>(null);
+  const [available, setAvailable] = useState<Coupon[]>([]);
+  const activeRid = items[0]?.restaurantId ?? null;
+
+  useEffect(() => {
+    fetchAvailableCoupons(activeRid).then(setAvailable).catch(() => {});
+  }, [activeRid]);
 
   const baseDelivery = items.length ? 30 : 0;
   const deliveryFee = applied?.freeDelivery ? 0 : baseDelivery;
   const discount = applied?.discount ?? 0;
   const grand = Math.max(0, total + deliveryFee - discount);
 
-  function applyCoupon(input?: string) {
-    const c = findCoupon(input ?? code);
+  async function applyCoupon(input?: string) {
+    const c = await findCoupon(input ?? code, activeRid);
     if (!c) return toast.error("Invalid coupon code");
     if (c.minOrder && total < c.minOrder) {
       return toast.error(`Add ₹${c.minOrder - total} more to use ${c.code}`);
@@ -79,6 +85,8 @@ function CartPage() {
       addOrder(finalOrder);
       localStorage.setItem("quickbite_active_order", JSON.stringify(finalOrder));
     } catch {}
+
+    if (applied?.code) bumpCouponUsage(applied.code).catch(() => {});
 
     clear();
     setPaying(false);
@@ -276,7 +284,7 @@ function CartPage() {
                     </button>
                   </div>
                   <div className="mt-3 space-y-1">
-                    {COUPONS.map((c) => (
+                    {available.map((c: Coupon) => (
                       <button
                         key={c.code}
                         onClick={() => applyCoupon(c.code)}

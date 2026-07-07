@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { LayoutDashboard, ClipboardList, UtensilsCrossed, Settings, BarChart3, ArrowLeft, Store, ChevronDown } from "lucide-react";
+import { LayoutDashboard, ClipboardList, UtensilsCrossed, Settings, BarChart3, ArrowLeft, Store, ChevronDown, MessageSquare, Tag, Bell } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { fetchMyRestaurants, isOwner, claimDemoRestaurant, type OwnedRestaurant } from "@/lib/owner-api";
 import { restaurants as staticRestaurants } from "@/lib/data";
@@ -130,6 +130,9 @@ export function OwnerShell({ children }: { children: ReactNode }) {
     { to: "/owner", label: "Dashboard", icon: LayoutDashboard, exact: true },
     { to: "/owner/orders", label: "Orders", icon: ClipboardList },
     { to: "/owner/menu", label: "Menu", icon: UtensilsCrossed },
+    { to: "/owner/reviews", label: "Reviews", icon: MessageSquare },
+    { to: "/owner/coupons", label: "Coupons", icon: Tag },
+    { to: "/owner/notifications", label: "Alerts", icon: Bell },
     { to: "/owner/analytics", label: "Analytics", icon: BarChart3 },
     { to: "/owner/settings", label: "Settings", icon: Settings },
   ];

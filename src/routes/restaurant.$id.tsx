@@ -1,12 +1,13 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, Star, Clock, Plus, Heart } from "lucide-react";
+import { ArrowLeft, Star, Clock, Plus, Heart, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MobileShell } from "@/components/MobileShell";
 import { findRestaurant, type Dish } from "@/lib/data";
 import { useCustomDishes } from "@/lib/owner";
 import { useCart } from "@/lib/cart";
 import { useFavorites } from "@/lib/favorites";
-import { reviewsFor, avgRating, type Review } from "@/lib/reviews";
+import { reviewsFor, refreshReviewsFor, addReview, avgRating, type Review } from "@/lib/reviews";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/restaurant/$id")({
@@ -41,11 +42,40 @@ function RestaurantPage() {
   const { isDishFav, toggleDish, isRestaurantFav, toggleRestaurant } = useFavorites();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [avg, setAvg] = useState(r.rating);
+  const [showForm, setShowForm] = useState(false);
+  const [newRating, setNewRating] = useState(5);
+  const [newComment, setNewComment] = useState("");
+  const [posting, setPosting] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
     setReviews(reviewsFor(r.id));
     setAvg(avgRating(r.id, r.rating));
+    refreshReviewsFor(r.id).then((list) => {
+      setReviews(list);
+      setAvg(avgRating(r.id, r.rating));
+    }).catch(() => {});
+    supabase.auth.getUser().then(({ data }) => setSignedIn(!!data.user));
   }, [r.id, r.rating]);
+
+  async function submitReview() {
+    if (!newComment.trim() && newRating === 0) return;
+    setPosting(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const meta = (userData.user?.user_metadata ?? {}) as any;
+      const author = meta.full_name || meta.name || userData.user?.email?.split("@")[0] || "Customer";
+      await addReview({ restaurantId: r.id, rating: newRating, comment: newComment.trim(), author });
+      setReviews(reviewsFor(r.id));
+      setAvg(avgRating(r.id, r.rating));
+      setNewComment("");
+      setNewRating(5);
+      setShowForm(false);
+      toast.success("Thanks for your review!");
+    } catch (e: any) {
+      toast.error(e.message || "Could not post review");
+    } finally { setPosting(false); }
+  }
 
   const restFav = isRestaurantFav(r.id);
 
@@ -141,28 +171,63 @@ function RestaurantPage() {
           })}
         </div>
 
-        {reviews.length > 0 && (
-          <>
-            <h2 className="mt-6 font-bold text-slate-800">Reviews ({reviews.length})</h2>
-            <div className="mt-3 space-y-2">
-              {reviews.slice(0, 5).map((rv) => (
-                <div key={rv.id} className="bg-white/90 rounded-2xl p-3 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-slate-800">{rv.author}</p>
-                    <div className="flex items-center gap-0.5">
-                      {[1, 2, 3, 4, 5].map((n) => (
-                        <Star
-                          key={n}
-                          className={`w-3 h-3 ${n <= rv.rating ? "fill-amber-400 text-amber-400" : "text-slate-300"}`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  {rv.comment && <p className="mt-1 text-xs text-slate-600">{rv.comment}</p>}
-                </div>
+        <div className="mt-6 flex items-center justify-between">
+          <h2 className="font-bold text-slate-800">Reviews ({reviews.length})</h2>
+          {signedIn && (
+            <button onClick={() => setShowForm((v) => !v)} className="text-xs font-semibold text-violet-600">
+              {showForm ? "Cancel" : "Write a review"}
+            </button>
+          )}
+        </div>
+
+        {showForm && (
+          <div className="mt-2 bg-white/95 rounded-2xl p-3 shadow-sm">
+            <div className="flex gap-1">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button key={n} onClick={() => setNewRating(n)}>
+                  <Star className={`w-6 h-6 ${n <= newRating ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} />
+                </button>
               ))}
             </div>
-          </>
+            <textarea
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Share your experience…"
+              rows={3}
+              className="mt-2 w-full rounded-xl border border-slate-200 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-300"
+            />
+            <button
+              onClick={submitReview}
+              disabled={posting}
+              className="mt-2 w-full h-10 rounded-xl bg-gradient-to-r from-violet-500 to-pink-500 text-white text-sm font-bold flex items-center justify-center gap-1 disabled:opacity-60"
+            >
+              <Send className="w-3.5 h-3.5" /> {posting ? "Posting…" : "Post review"}
+            </button>
+          </div>
+        )}
+
+        {reviews.length > 0 && (
+          <div className="mt-3 space-y-2">
+            {reviews.slice(0, 10).map((rv) => (
+              <div key={rv.id} className="bg-white/90 rounded-2xl p-3 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-slate-800">{rv.author}</p>
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <Star key={n} className={`w-3 h-3 ${n <= rv.rating ? "fill-amber-400 text-amber-400" : "text-slate-300"}`} />
+                    ))}
+                  </div>
+                </div>
+                {rv.comment && <p className="mt-1 text-xs text-slate-600">{rv.comment}</p>}
+                {rv.reply && (
+                  <div className="mt-2 bg-violet-50 border-l-2 border-violet-400 p-2 rounded">
+                    <p className="text-[10px] font-bold text-violet-700 uppercase">Owner reply</p>
+                    <p className="text-xs text-slate-700 mt-0.5">{rv.reply}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         )}
         <div className="h-6" />
       </div>
