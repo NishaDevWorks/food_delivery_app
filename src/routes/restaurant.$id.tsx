@@ -48,6 +48,7 @@ function RestaurantPage() {
   const [newComment, setNewComment] = useState("");
   const [posting, setPosting] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
 
   useEffect(() => {
     setReviews(reviewsFor(r.id));
@@ -57,6 +58,7 @@ function RestaurantPage() {
       setAvg(avgRating(r.id, r.rating));
     }).catch(() => {});
     supabase.auth.getUser().then(({ data }) => setSignedIn(!!data.user));
+    fetchSettings(r.id).then((s) => { if (s) setIsOpen(s.is_open); }).catch(() => {});
   }, [r.id, r.rating]);
 
   async function submitReview() {
