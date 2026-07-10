@@ -166,7 +166,9 @@ function RestaurantPage() {
                     <Heart className={`w-4 h-4 ${fav ? "fill-rose-500 text-rose-500" : "text-slate-400"}`} />
                   </button>
                   <button
+                    disabled={!isOpen}
                     onClick={() => {
+                      if (!isOpen) return;
                       add({
                         id: d.id,
                         name: d.name,
@@ -178,7 +180,7 @@ function RestaurantPage() {
                       });
                       toast.success(`${d.name} added`);
                     }}
-                    className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-pink-500 text-white flex items-center justify-center shadow-md shadow-pink-200 active:scale-95"
+                    className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-pink-500 text-white flex items-center justify-center shadow-md shadow-pink-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
                   >
                     <Plus className="w-5 h-5" />
                   </button>
