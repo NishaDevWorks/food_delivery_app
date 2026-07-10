@@ -52,6 +52,13 @@ export async function fetchSettings(rid: string): Promise<RestaurantSettings | n
   return (data as any) ?? null;
 }
 
+export async function fetchOpenStatuses(): Promise<Record<string, boolean>> {
+  const { data } = await supabase.from("restaurant_settings").select("restaurant_id,is_open");
+  const map: Record<string, boolean> = {};
+  (data ?? []).forEach((r: any) => { map[r.restaurant_id] = r.is_open; });
+  return map;
+}
+
 export async function upsertSettings(s: Partial<RestaurantSettings> & { restaurant_id: string }) {
   const { error } = await supabase.from("restaurant_settings").upsert(s as any, { onConflict: "restaurant_id" });
   if (error) throw error;

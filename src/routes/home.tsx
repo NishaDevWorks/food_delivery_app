@@ -3,7 +3,8 @@ import { Search, Star, Clock, SlidersHorizontal, Heart, X } from "lucide-react";
 import { MobileShell } from "@/components/MobileShell";
 import { restaurants } from "@/lib/data";
 import { useFavorites } from "@/lib/favorites";
-import { useState } from "react";
+import { fetchOpenStatuses } from "@/lib/owner-api";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/home")({
   head: () => ({
@@ -31,6 +32,11 @@ function HomePage() {
   const [minRating, setMinRating] = useState(0);
   const [priceLevels, setPriceLevels] = useState<number[]>([]); // empty = all
   const { isRestaurantFav, toggleRestaurant } = useFavorites();
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    fetchOpenStatuses().then(setOpenMap).catch(() => {});
+  }, []);
 
   const filtered = restaurants.filter((r) => {
     const text = q.toLowerCase();
@@ -183,6 +189,7 @@ function HomePage() {
           <div className="mt-3 grid grid-cols-2 gap-3">
             {filtered.map((r) => {
               const fav = isRestaurantFav(r.id);
+              const closed = openMap[r.id] === false;
               return (
                 <div key={r.id} className="relative">
                   <Link
@@ -190,13 +197,20 @@ function HomePage() {
                     params={{ id: r.id }}
                     className="block rounded-2xl bg-white/90 p-3 shadow-sm hover:scale-[1.02] active:scale-[0.98] transition"
                   >
-                    <div className={`aspect-square rounded-xl bg-gradient-to-br ${r.gradient} overflow-hidden`}>
+                    <div className={`relative aspect-square rounded-xl bg-gradient-to-br ${r.gradient} overflow-hidden`}>
                       <img
                         src={r.image}
                         alt={r.name}
                         loading="lazy"
-                        className="w-full h-full object-cover"
+                        className={`w-full h-full object-cover ${closed ? "grayscale opacity-70" : ""}`}
                       />
+                      {closed && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                          <span className="text-[10px] font-bold text-white bg-rose-600 rounded-full px-2 py-0.5 uppercase tracking-wider">
+                            Closed
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <div className="mt-2 flex items-center justify-between gap-1">
                       <p className="font-semibold text-sm text-slate-800 truncate">{r.name}</p>

@@ -7,6 +7,7 @@ import { useCustomDishes } from "@/lib/owner";
 import { useCart } from "@/lib/cart";
 import { useFavorites } from "@/lib/favorites";
 import { reviewsFor, refreshReviewsFor, addReview, avgRating, type Review } from "@/lib/reviews";
+import { fetchSettings } from "@/lib/owner-api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -47,6 +48,7 @@ function RestaurantPage() {
   const [newComment, setNewComment] = useState("");
   const [posting, setPosting] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
 
   useEffect(() => {
     setReviews(reviewsFor(r.id));
@@ -56,6 +58,7 @@ function RestaurantPage() {
       setAvg(avgRating(r.id, r.rating));
     }).catch(() => {});
     supabase.auth.getUser().then(({ data }) => setSignedIn(!!data.user));
+    fetchSettings(r.id).then((s) => { if (s) setIsOpen(s.is_open); }).catch(() => {});
   }, [r.id, r.rating]);
 
   async function submitReview() {
@@ -101,7 +104,14 @@ function RestaurantPage() {
 
       <div className="px-5 -mt-6 relative">
         <div className="bg-white rounded-3xl p-5 shadow-md">
-          <h1 className="text-xl font-black text-slate-900">{r.name}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-black text-slate-900">{r.name}</h1>
+            {!isOpen && (
+              <span className="text-[10px] font-bold text-rose-700 bg-rose-100 border border-rose-200 rounded-full px-2 py-0.5 uppercase tracking-wider">
+                Closed
+              </span>
+            )}
+          </div>
           <p className="text-sm text-slate-500">{r.cuisine}</p>
           <div className="mt-2 flex gap-3 text-xs text-slate-600">
             <span className="flex items-center gap-1">
@@ -116,6 +126,13 @@ function RestaurantPage() {
             <span className="text-slate-500">{"₹".repeat(r.priceLevel)}</span>
           </div>
         </div>
+
+        {!isOpen && (
+          <div className="mt-3 bg-rose-50 border border-rose-200 rounded-2xl p-3 text-center">
+            <p className="text-sm font-bold text-rose-700">This restaurant is currently closed</p>
+            <p className="text-xs text-rose-600 mt-0.5">You can browse the menu, but ordering is disabled.</p>
+          </div>
+        )}
 
         <h2 className="mt-6 font-bold text-slate-800">Menu</h2>
         <div className="mt-3 space-y-3">
@@ -149,7 +166,9 @@ function RestaurantPage() {
                     <Heart className={`w-4 h-4 ${fav ? "fill-rose-500 text-rose-500" : "text-slate-400"}`} />
                   </button>
                   <button
+                    disabled={!isOpen}
                     onClick={() => {
+                      if (!isOpen) return;
                       add({
                         id: d.id,
                         name: d.name,
@@ -161,7 +180,7 @@ function RestaurantPage() {
                       });
                       toast.success(`${d.name} added`);
                     }}
-                    className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-pink-500 text-white flex items-center justify-center shadow-md shadow-pink-200 active:scale-95"
+                    className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-pink-500 text-white flex items-center justify-center shadow-md shadow-pink-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
                   >
                     <Plus className="w-5 h-5" />
                   </button>
