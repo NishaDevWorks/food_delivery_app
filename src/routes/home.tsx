@@ -3,7 +3,8 @@ import { Search, Star, Clock, SlidersHorizontal, Heart, X } from "lucide-react";
 import { MobileShell } from "@/components/MobileShell";
 import { restaurants } from "@/lib/data";
 import { useFavorites } from "@/lib/favorites";
-import { useState } from "react";
+import { fetchOpenStatuses } from "@/lib/owner-api";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/home")({
   head: () => ({
