@@ -32,6 +32,11 @@ function HomePage() {
   const [minRating, setMinRating] = useState(0);
   const [priceLevels, setPriceLevels] = useState<number[]>([]); // empty = all
   const { isRestaurantFav, toggleRestaurant } = useFavorites();
+  const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    fetchOpenStatuses().then(setOpenMap).catch(() => {});
+  }, []);
 
   const filtered = restaurants.filter((r) => {
     const text = q.toLowerCase();
