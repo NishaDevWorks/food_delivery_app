@@ -104,7 +104,14 @@ function RestaurantPage() {
 
       <div className="px-5 -mt-6 relative">
         <div className="bg-white rounded-3xl p-5 shadow-md">
-          <h1 className="text-xl font-black text-slate-900">{r.name}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-black text-slate-900">{r.name}</h1>
+            {!isOpen && (
+              <span className="text-[10px] font-bold text-rose-700 bg-rose-100 border border-rose-200 rounded-full px-2 py-0.5 uppercase tracking-wider">
+                Closed
+              </span>
+            )}
+          </div>
           <p className="text-sm text-slate-500">{r.cuisine}</p>
           <div className="mt-2 flex gap-3 text-xs text-slate-600">
             <span className="flex items-center gap-1">
@@ -119,6 +126,13 @@ function RestaurantPage() {
             <span className="text-slate-500">{"₹".repeat(r.priceLevel)}</span>
           </div>
         </div>
+
+        {!isOpen && (
+          <div className="mt-3 bg-rose-50 border border-rose-200 rounded-2xl p-3 text-center">
+            <p className="text-sm font-bold text-rose-700">This restaurant is currently closed</p>
+            <p className="text-xs text-rose-600 mt-0.5">You can browse the menu, but ordering is disabled.</p>
+          </div>
+        )}
 
         <h2 className="mt-6 font-bold text-slate-800">Menu</h2>
         <div className="mt-3 space-y-3">
