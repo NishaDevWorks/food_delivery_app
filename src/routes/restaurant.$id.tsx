@@ -7,6 +7,7 @@ import { useCustomDishes } from "@/lib/owner";
 import { useCart } from "@/lib/cart";
 import { useFavorites } from "@/lib/favorites";
 import { reviewsFor, refreshReviewsFor, addReview, avgRating, type Review } from "@/lib/reviews";
+import { fetchSettings } from "@/lib/owner-api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
