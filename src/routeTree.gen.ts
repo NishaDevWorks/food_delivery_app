@@ -22,6 +22,7 @@ import { Route as FavoritesRouteImport } from './routes/favorites'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as AddressesRouteImport } from './routes/addresses'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as OwnerIndexRouteImport } from './routes/owner.index'
 import { Route as RestaurantIdRouteImport } from './routes/restaurant.$id'
 import { Route as OwnerSettingsRouteImport } from './routes/owner.settings'
 import { Route as OwnerReviewsRouteImport } from './routes/owner.reviews'
@@ -97,6 +98,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OwnerIndexRoute = OwnerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OwnerRoute,
+} as any)
 const RestaurantIdRoute = RestaurantIdRouteImport.update({
   id: '/restaurant/$id',
   path: '/restaurant/$id',
@@ -166,6 +172,7 @@ export interface FileRoutesByFullPath {
   '/owner/reviews': typeof OwnerReviewsRoute
   '/owner/settings': typeof OwnerSettingsRoute
   '/restaurant/$id': typeof RestaurantIdRoute
+  '/owner/': typeof OwnerIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -177,7 +184,6 @@ export interface FileRoutesByTo {
   '/invoices': typeof InvoicesRoute
   '/notifications': typeof NotificationsRoute
   '/orders': typeof OrdersRoute
-  '/owner': typeof OwnerRouteWithChildren
   '/payments': typeof PaymentsRoute
   '/profile': typeof ProfileRoute
   '/track': typeof TrackRoute
@@ -190,6 +196,7 @@ export interface FileRoutesByTo {
   '/owner/reviews': typeof OwnerReviewsRoute
   '/owner/settings': typeof OwnerSettingsRoute
   '/restaurant/$id': typeof RestaurantIdRoute
+  '/owner': typeof OwnerIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -215,6 +222,7 @@ export interface FileRoutesById {
   '/owner/reviews': typeof OwnerReviewsRoute
   '/owner/settings': typeof OwnerSettingsRoute
   '/restaurant/$id': typeof RestaurantIdRoute
+  '/owner/': typeof OwnerIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -241,6 +249,7 @@ export interface FileRouteTypes {
     | '/owner/reviews'
     | '/owner/settings'
     | '/restaurant/$id'
+    | '/owner/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -252,7 +261,6 @@ export interface FileRouteTypes {
     | '/invoices'
     | '/notifications'
     | '/orders'
-    | '/owner'
     | '/payments'
     | '/profile'
     | '/track'
@@ -265,6 +273,7 @@ export interface FileRouteTypes {
     | '/owner/reviews'
     | '/owner/settings'
     | '/restaurant/$id'
+    | '/owner'
   id:
     | '__root__'
     | '/'
@@ -289,6 +298,7 @@ export interface FileRouteTypes {
     | '/owner/reviews'
     | '/owner/settings'
     | '/restaurant/$id'
+    | '/owner/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -402,6 +412,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/owner/': {
+      id: '/owner/'
+      path: '/'
+      fullPath: '/owner/'
+      preLoaderRoute: typeof OwnerIndexRouteImport
+      parentRoute: typeof OwnerRoute
+    }
     '/restaurant/$id': {
       id: '/restaurant/$id'
       path: '/restaurant/$id'
@@ -476,6 +493,7 @@ interface OwnerRouteChildren {
   OwnerOrdersRoute: typeof OwnerOrdersRoute
   OwnerReviewsRoute: typeof OwnerReviewsRoute
   OwnerSettingsRoute: typeof OwnerSettingsRoute
+  OwnerIndexRoute: typeof OwnerIndexRoute
 }
 
 const OwnerRouteChildren: OwnerRouteChildren = {
@@ -486,6 +504,7 @@ const OwnerRouteChildren: OwnerRouteChildren = {
   OwnerOrdersRoute: OwnerOrdersRoute,
   OwnerReviewsRoute: OwnerReviewsRoute,
   OwnerSettingsRoute: OwnerSettingsRoute,
+  OwnerIndexRoute: OwnerIndexRoute,
 }
 
 const OwnerRouteWithChildren = OwnerRoute._addFileChildren(OwnerRouteChildren)
