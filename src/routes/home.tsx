@@ -110,14 +110,18 @@ function HomePage() {
     <MobileShell>
       <div className="px-5 pt-8">
         <div className="flex items-center justify-between">
-          <div>
+          <div className="min-w-0">
             <p className="text-xs text-slate-500">Deliver to</p>
-            <h2 className="font-bold text-slate-800">Home · MG Road</h2>
+            <h2 className="font-bold text-slate-800 truncate flex items-center gap-1">
+              <MapPin className="w-4 h-4 text-violet-500 shrink-0" />
+              <span className="truncate">{locationLabel}</span>
+            </h2>
           </div>
-          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-violet-300 to-pink-300 flex items-center justify-center text-white font-bold">
+          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-violet-300 to-pink-300 flex items-center justify-center text-white font-bold shrink-0">
             R
           </div>
         </div>
+
 
         <h1 className="mt-6 text-2xl font-black text-slate-900 leading-tight">
           What would you like<br />to eat today?
