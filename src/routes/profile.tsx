@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ChevronRight, MapPin, CreditCard, Bell, HelpCircle, LogOut, Store, Package, Heart } from "lucide-react";
+import { ChevronRight, MapPin, CreditCard, Bell, HelpCircle, LogOut, Package, Heart } from "lucide-react";
 import { MobileShell } from "@/components/MobileShell";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +17,7 @@ const items = [
   { icon: MapPin, label: "Saved addresses", to: "/addresses" as const },
   { icon: CreditCard, label: "Payment methods", to: "/payments" as const },
   { icon: Bell, label: "Notifications", to: "/notifications" as const },
-  { icon: Store, label: "Owner · Add items", to: "/owner" as const },
+  
   { icon: HelpCircle, label: "Help & support", to: "/help" as const },
 ];
 
