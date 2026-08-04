@@ -48,6 +48,7 @@ function RestaurantPage() {
   const [newComment, setNewComment] = useState("");
   const [posting, setPosting] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [canReview, setCanReview] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
 
   useEffect(() => {
@@ -57,9 +58,22 @@ function RestaurantPage() {
       setReviews(list);
       setAvg(avgRating(r.id, r.rating));
     }).catch(() => {});
-    supabase.auth.getUser().then(({ data }) => setSignedIn(!!data.user));
+    supabase.auth.getUser().then(async ({ data }) => {
+      setSignedIn(!!data.user);
+      if (!data.user) { setCanReview(false); return; }
+      const { data: orders } = await supabase
+        .from("orders")
+        .select("id,restaurant_id,restaurant_name,status")
+        .eq("user_id", data.user.id);
+      const eligible = (orders ?? []).some(
+        (o: any) =>
+          (o.restaurant_id === r.id || o.restaurant_name === r.name) &&
+          o.status === "delivered"
+      );
+      setCanReview(eligible);
+    });
     fetchSettings(r.id).then((s) => { if (s) setIsOpen(s.is_open); }).catch(() => {});
-  }, [r.id, r.rating]);
+  }, [r.id, r.name, r.rating]);
 
   async function submitReview() {
     if (!newComment.trim() && newRating === 0) return;
@@ -192,10 +206,14 @@ function RestaurantPage() {
 
         <div className="mt-6 flex items-center justify-between">
           <h2 className="font-bold text-slate-800">Reviews ({reviews.length})</h2>
-          {signedIn && (
+          {signedIn && canReview ? (
             <button onClick={() => setShowForm((v) => !v)} className="text-xs font-semibold text-violet-600">
               {showForm ? "Cancel" : "Write a review"}
             </button>
+          ) : (
+            <span className="text-[11px] text-slate-400">
+              {signedIn ? "Order & receive to review" : "Sign in to review"}
+            </span>
           )}
         </div>
 
