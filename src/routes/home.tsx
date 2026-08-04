@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Search, Star, Clock, SlidersHorizontal, Heart, X, Flame, MessageSquare } from "lucide-react";
+import { Search, Star, Clock, SlidersHorizontal, Heart, X, Flame, MessageSquare, MapPin } from "lucide-react";
 import { MobileShell } from "@/components/MobileShell";
 import { restaurants } from "@/lib/data";
 import { useFavorites } from "@/lib/favorites";
+import { useCurrentLocationLabel } from "@/lib/location";
 import { fetchOpenStatuses } from "@/lib/owner-api";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useMemo, useState } from "react";
@@ -42,6 +43,7 @@ function HomePage() {
   const { isRestaurantFav, toggleRestaurant } = useFavorites();
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   const [stats, setStats] = useState<Record<string, Stats>>({});
+  const { label: locationLabel } = useCurrentLocationLabel();
 
   useEffect(() => {
     fetchOpenStatuses().then(setOpenMap).catch(() => {});
