@@ -8,6 +8,7 @@ import { findCoupon, fetchAvailableCoupons, bumpCouponUsage, type Coupon } from 
 import { addOrder, saveOrderToCloud, type Order } from "@/lib/orders";
 import { loadRazorpay, openRazorpay } from "@/lib/razorpay-client";
 import { createRazorpayOrder, verifyRazorpayPayment } from "@/lib/razorpay.functions";
+import { useCurrentLocationLabel } from "@/lib/location";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
