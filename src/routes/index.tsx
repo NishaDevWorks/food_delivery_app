@@ -22,6 +22,8 @@ function LoginPage() {
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+
   const [password, setPassword] = useState("");
   const [locStatus, setLocStatus] = useState<"idle" | "granted" | "denied">("idle");
 
