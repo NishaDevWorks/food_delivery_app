@@ -49,8 +49,12 @@ export function useCurrentLocationLabel() {
       try { localStorage.setItem(LABEL_KEY, next); } catch {}
     };
 
+    const cachedLabel = readLabel();
+    if (cachedLabel) setLabel(cachedLabel);
+
     const cached = readCoords();
-    if (cached && !label) void resolve(cached);
+    if (cached) void resolve(cached);
+
 
     if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
       if (!cached && !label) setLabel("Location unavailable");
