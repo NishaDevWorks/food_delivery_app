@@ -251,6 +251,28 @@ function CartPage() {
             </div>
 
             <div className="mt-5 bg-white/90 rounded-2xl p-4 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center shrink-0">
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                    Delivering to your current location
+                  </p>
+                  <p className="text-sm font-bold text-slate-800 truncate">
+                    {locLoading && !locLabel ? "Detecting your location…" : locLabel || "Location off"}
+                  </p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    {locLabel && locLabel !== "Location off" && locLabel !== "Location unavailable"
+                      ? "No address needed — we use your live GPS location."
+                      : "Turn on location so we can deliver to you."}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 bg-white/90 rounded-2xl p-4 shadow-sm">
+
               <div className="flex items-center gap-2">
                 <Tag className="w-4 h-4 text-violet-600" />
                 <p className="text-sm font-bold text-slate-800">Promo code</p>
