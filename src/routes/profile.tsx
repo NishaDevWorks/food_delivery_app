@@ -88,8 +88,13 @@ function ProfilePage() {
           <div className="min-w-0">
             <p className="font-bold text-slate-900 truncate">{profile.name}</p>
             <p className="text-xs text-slate-500 truncate">{profile.email || "—"}</p>
+            <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500 truncate">
+              <Phone className="w-3 h-3 text-violet-500" />
+              {profile.phone || "Phone not added"}
+            </p>
           </div>
         </div>
+
 
         <div className="mt-5 bg-white/90 rounded-3xl shadow-sm divide-y divide-slate-100 overflow-hidden">
           {items.map(({ icon: Icon, label, to }) => (
