@@ -25,7 +25,13 @@ function CartPage() {
   const [code, setCode] = useState("");
   const [applied, setApplied] = useState<{ code: string; discount: number; freeDelivery: boolean } | null>(null);
   const [available, setAvailable] = useState<Coupon[]>([]);
-  const { label: locLabel, loading: locLoading } = useCurrentLocationLabel();
+  const {
+    label: locLabel,
+    address: locAddress,
+    loading: locLoading,
+    error: locError,
+    refresh: refreshLocation,
+  } = useCurrentLocationLabel();
   const activeRid = items[0]?.restaurantId ?? null;
 
 
