@@ -34,10 +34,9 @@ async function reverseGeocode(c: Coords): Promise<string | null> {
 
 /** Live "deliver to" label based on the device's current location. */
 export function useCurrentLocationLabel() {
-  const [label, setLabel] = useState<string>(() => {
-    try { return localStorage.getItem(LABEL_KEY) || ""; } catch { return ""; }
-  });
+  const [label, setLabel] = useState<string>("");
   const [loading, setLoading] = useState(false);
+
 
   useEffect(() => {
     let cancelled = false;
