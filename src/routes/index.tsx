@@ -63,8 +63,12 @@ function LoginPage() {
   }
 
   async function submitEmail() {
-    if (!email || !password || (tab === "signup" && !name)) {
+    if (!email || !password || (tab === "signup" && (!name || !phone))) {
       toast.error("Please fill all fields");
+      return;
+    }
+    if (tab === "signup" && phone.replace(/\D/g, "").length < 10) {
+      toast.error("Enter a valid phone number");
       return;
     }
     setLoading(true);
@@ -81,7 +85,7 @@ function LoginPage() {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/home`,
-            data: { full_name: name },
+            data: { full_name: name, phone },
           },
         });
         if (error) throw error;
@@ -93,6 +97,7 @@ function LoginPage() {
         toast.success("Account created!");
         navigate({ to: "/home" });
       }
+
     } catch (e: any) {
       toast.error(e?.message || "Authentication failed");
     } finally {
