@@ -25,7 +25,13 @@ function CartPage() {
   const [code, setCode] = useState("");
   const [applied, setApplied] = useState<{ code: string; discount: number; freeDelivery: boolean } | null>(null);
   const [available, setAvailable] = useState<Coupon[]>([]);
-  const { label: locLabel, loading: locLoading } = useCurrentLocationLabel();
+  const {
+    label: locLabel,
+    address: locAddress,
+    loading: locLoading,
+    error: locError,
+    refresh: refreshLocation,
+  } = useCurrentLocationLabel();
   const activeRid = items[0]?.restaurantId ?? null;
 
 
@@ -262,17 +268,27 @@ function CartPage() {
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                     Delivering to your current location
                   </p>
-                  <p className="text-sm font-bold text-slate-800 truncate">
-                    {locLoading && !locLabel ? "Detecting your location…" : locLabel || "Location off"}
+                  <p className="text-sm font-bold text-slate-800">
+                    {locLoading && !locAddress
+                      ? "Detecting your location…"
+                      : locAddress || locLabel || "Location off"}
                   </p>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    {locLabel && locLabel !== "Location off" && locLabel !== "Location unavailable"
-                      ? "No address needed — we use your live GPS location."
-                      : "Turn on location so we can deliver to you."}
+                    {locError
+                      ? `${locError} — turn on location so we can deliver to you.`
+                      : "No address needed — we use your live GPS location."}
                   </p>
                 </div>
+                <button
+                  onClick={refreshLocation}
+                  disabled={locLoading}
+                  className="shrink-0 px-3 h-8 rounded-full bg-violet-100 text-violet-700 text-[11px] font-bold disabled:opacity-60"
+                >
+                  {locLoading ? "…" : "Update"}
+                </button>
               </div>
             </div>
+
 
             <div className="mt-5 bg-white/90 rounded-2xl p-4 shadow-sm">
 
