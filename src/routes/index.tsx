@@ -180,8 +180,12 @@ function LoginPage() {
 
         <div className="mt-4 space-y-3">
           {tab === "signup" && (
-            <Field icon={UserIcon} placeholder="Full name" value={name} onChange={setName} />
+            <>
+              <Field icon={UserIcon} placeholder="Full name" value={name} onChange={setName} />
+              <Field icon={Phone} placeholder="Phone number" type="tel" value={phone} onChange={setPhone} />
+            </>
           )}
+
           <Field icon={Mail} placeholder="Email" type="email" value={email} onChange={setEmail} />
           <Field icon={Lock} placeholder="Password" type="password" value={password} onChange={setPassword} />
 
