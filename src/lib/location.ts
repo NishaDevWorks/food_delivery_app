@@ -15,6 +15,11 @@ export function readCoords(): Coords | null {
   } catch { return null; }
 }
 
+export function readLabel(): string {
+  try { return localStorage.getItem(LABEL_KEY) || ""; } catch { return ""; }
+}
+
+
 async function reverseGeocode(c: Coords): Promise<string | null> {
   try {
     const res = await fetch(
