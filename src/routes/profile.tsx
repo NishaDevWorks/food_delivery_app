@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ChevronRight, MapPin, CreditCard, Bell, HelpCircle, LogOut, Package, Heart } from "lucide-react";
+import { ChevronRight, MapPin, CreditCard, Bell, HelpCircle, LogOut, Package, Heart, Phone } from "lucide-react";
 import { MobileShell } from "@/components/MobileShell";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,9 +23,10 @@ const items = [
 
 function ProfilePage() {
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<{ name: string; email: string; avatar: string | null }>({
+  const [profile, setProfile] = useState<{ name: string; email: string; phone: string; avatar: string | null }>({
     name: "Guest",
     email: "",
+    phone: "",
     avatar: null,
   });
 
@@ -37,19 +38,26 @@ function ProfilePage() {
       const meta = (user.user_metadata ?? {}) as Record<string, string>;
       let name = meta.full_name || meta.name || (user.email ? user.email.split("@")[0] : "Guest");
       let avatar = meta.avatar_url || meta.picture || null;
+      let phone = meta.phone || user.phone || "";
       // Prefer profile row (canonical)
       const { data: prof } = await supabase
         .from("profiles")
-        .select("display_name, avatar_url")
+        .select("display_name, avatar_url, phone")
         .eq("id", user.id)
         .maybeSingle();
       if (prof) {
         if (prof.display_name) name = prof.display_name;
         if (prof.avatar_url) avatar = prof.avatar_url;
+        if (prof.phone) phone = prof.phone;
       }
-      setProfile({ name, email: user.email ?? "", avatar });
+      // Backfill phone from signup metadata if the profile row is missing it
+      if (!prof?.phone && phone) {
+        await supabase.from("profiles").update({ phone }).eq("id", user.id);
+      }
+      setProfile({ name, email: user.email ?? "", phone, avatar });
     })();
   }, []);
+
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -80,8 +88,13 @@ function ProfilePage() {
           <div className="min-w-0">
             <p className="font-bold text-slate-900 truncate">{profile.name}</p>
             <p className="text-xs text-slate-500 truncate">{profile.email || "—"}</p>
+            <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500 truncate">
+              <Phone className="w-3 h-3 text-violet-500" />
+              {profile.phone || "Phone not added"}
+            </p>
           </div>
         </div>
+
 
         <div className="mt-5 bg-white/90 rounded-3xl shadow-sm divide-y divide-slate-100 overflow-hidden">
           {items.map(({ icon: Icon, label, to }) => (

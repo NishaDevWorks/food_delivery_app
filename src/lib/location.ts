@@ -15,6 +15,11 @@ export function readCoords(): Coords | null {
   } catch { return null; }
 }
 
+export function readLabel(): string {
+  try { return localStorage.getItem(LABEL_KEY) || ""; } catch { return ""; }
+}
+
+
 async function reverseGeocode(c: Coords): Promise<string | null> {
   try {
     const res = await fetch(
@@ -34,10 +39,9 @@ async function reverseGeocode(c: Coords): Promise<string | null> {
 
 /** Live "deliver to" label based on the device's current location. */
 export function useCurrentLocationLabel() {
-  const [label, setLabel] = useState<string>(() => {
-    try { return localStorage.getItem(LABEL_KEY) || ""; } catch { return ""; }
-  });
+  const [label, setLabel] = useState<string>("");
   const [loading, setLoading] = useState(false);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -50,8 +54,12 @@ export function useCurrentLocationLabel() {
       try { localStorage.setItem(LABEL_KEY, next); } catch {}
     };
 
+    const cachedLabel = readLabel();
+    if (cachedLabel) setLabel(cachedLabel);
+
     const cached = readCoords();
-    if (cached && !label) void resolve(cached);
+    if (cached) void resolve(cached);
+
 
     if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
       if (!cached && !label) setLabel("Location unavailable");

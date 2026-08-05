@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { UtensilsCrossed, MapPin, Mail, Lock, User as UserIcon } from "lucide-react";
+import { UtensilsCrossed, MapPin, Mail, Lock, User as UserIcon, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
@@ -22,6 +22,8 @@ function LoginPage() {
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+
   const [password, setPassword] = useState("");
   const [locStatus, setLocStatus] = useState<"idle" | "granted" | "denied">("idle");
 
@@ -63,8 +65,12 @@ function LoginPage() {
   }
 
   async function submitEmail() {
-    if (!email || !password || (tab === "signup" && !name)) {
+    if (!email || !password || (tab === "signup" && (!name || !phone))) {
       toast.error("Please fill all fields");
+      return;
+    }
+    if (tab === "signup" && phone.replace(/\D/g, "").length < 10) {
+      toast.error("Enter a valid phone number");
       return;
     }
     setLoading(true);
@@ -81,7 +87,7 @@ function LoginPage() {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/home`,
-            data: { full_name: name },
+            data: { full_name: name, phone },
           },
         });
         if (error) throw error;
@@ -93,6 +99,7 @@ function LoginPage() {
         toast.success("Account created!");
         navigate({ to: "/home" });
       }
+
     } catch (e: any) {
       toast.error(e?.message || "Authentication failed");
     } finally {
@@ -173,8 +180,12 @@ function LoginPage() {
 
         <div className="mt-4 space-y-3">
           {tab === "signup" && (
-            <Field icon={UserIcon} placeholder="Full name" value={name} onChange={setName} />
+            <>
+              <Field icon={UserIcon} placeholder="Full name" value={name} onChange={setName} />
+              <Field icon={Phone} placeholder="Phone number" type="tel" value={phone} onChange={setPhone} />
+            </>
           )}
+
           <Field icon={Mail} placeholder="Email" type="email" value={email} onChange={setEmail} />
           <Field icon={Lock} placeholder="Password" type="password" value={password} onChange={setPassword} />
 

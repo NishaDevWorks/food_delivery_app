@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag, Banknote, Tag, X, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag, Banknote, Tag, X, ShieldCheck, MapPin } from "lucide-react";
 import { MobileShell } from "@/components/MobileShell";
 import { RazorpayCheckout, type RzpMethod } from "@/components/RazorpayCheckout";
 import { useCart } from "@/lib/cart";
@@ -8,6 +8,7 @@ import { findCoupon, fetchAvailableCoupons, bumpCouponUsage, type Coupon } from 
 import { addOrder, saveOrderToCloud, type Order } from "@/lib/orders";
 import { loadRazorpay, openRazorpay } from "@/lib/razorpay-client";
 import { createRazorpayOrder, verifyRazorpayPayment } from "@/lib/razorpay.functions";
+import { useCurrentLocationLabel } from "@/lib/location";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -24,7 +25,9 @@ function CartPage() {
   const [code, setCode] = useState("");
   const [applied, setApplied] = useState<{ code: string; discount: number; freeDelivery: boolean } | null>(null);
   const [available, setAvailable] = useState<Coupon[]>([]);
+  const { label: locLabel, loading: locLoading } = useCurrentLocationLabel();
   const activeRid = items[0]?.restaurantId ?? null;
+
 
   useEffect(() => {
     fetchAvailableCoupons(activeRid).then(setAvailable).catch(() => {});
@@ -251,6 +254,28 @@ function CartPage() {
             </div>
 
             <div className="mt-5 bg-white/90 rounded-2xl p-4 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center shrink-0">
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                    Delivering to your current location
+                  </p>
+                  <p className="text-sm font-bold text-slate-800 truncate">
+                    {locLoading && !locLabel ? "Detecting your location…" : locLabel || "Location off"}
+                  </p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    {locLabel && locLabel !== "Location off" && locLabel !== "Location unavailable"
+                      ? "No address needed — we use your live GPS location."
+                      : "Turn on location so we can deliver to you."}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 bg-white/90 rounded-2xl p-4 shadow-sm">
+
               <div className="flex items-center gap-2">
                 <Tag className="w-4 h-4 text-violet-600" />
                 <p className="text-sm font-bold text-slate-800">Promo code</p>
