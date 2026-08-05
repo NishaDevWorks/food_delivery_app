@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const COORDS_KEY = "quickbite_location";
 const LABEL_KEY = "quickbite_location_label";
+const ADDRESS_KEY = "quickbite_location_address";
 
 export type Coords = { lat: number; lng: number };
 
@@ -19,71 +20,109 @@ export function readLabel(): string {
   try { return localStorage.getItem(LABEL_KEY) || ""; } catch { return ""; }
 }
 
+export function readAddress(): string {
+  try { return localStorage.getItem(ADDRESS_KEY) || ""; } catch { return ""; }
+}
 
-async function reverseGeocode(c: Coords): Promise<string | null> {
+type Geo = { short: string; full: string };
+
+async function reverseGeocode(c: Coords): Promise<Geo | null> {
   try {
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${c.lat}&lon=${c.lng}&zoom=16&addressdetails=1`,
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${c.lat}&lon=${c.lng}&zoom=18&addressdetails=1`,
       { headers: { Accept: "application/json" } }
     );
     if (!res.ok) return null;
     const data: any = await res.json();
     const a = data?.address ?? {};
-    const area =
-      a.neighbourhood || a.suburb || a.road || a.village || a.town || a.city_district || a.city;
-    const city = a.city || a.town || a.village || a.state_district || a.state;
-    const label = [area, city && city !== area ? city : null].filter(Boolean).join(" · ");
-    return label || data?.display_name?.split(",").slice(0, 2).join(" · ") || null;
+
+    const street = [a.house_number, a.road].filter(Boolean).join(" ");
+    const area = a.neighbourhood || a.suburb || a.quarter || a.hamlet || a.village || a.city_district;
+    const city = a.city || a.town || a.municipality || a.county || a.state_district;
+    const state = a.state;
+    const pin = a.postcode;
+
+    const fullParts = [street || a.amenity || null, area, city, state, pin].filter(Boolean);
+    const full = fullParts.length ? Array.from(new Set(fullParts)).join(", ") : (data?.display_name ?? "");
+    const shortParts = [street || area, city && city !== (street || area) ? city : null].filter(Boolean);
+    const short = shortParts.join(" · ") || full.split(",").slice(0, 2).join(" · ");
+
+    if (!short && !full) return null;
+    return { short: short || full, full: full || short };
   } catch { return null; }
 }
 
-/** Live "deliver to" label based on the device's current location. */
+/** Live "deliver to" info based on the device's current GPS position. */
 export function useCurrentLocationLabel() {
   const [label, setLabel] = useState<string>("");
+  const [address, setAddress] = useState<string>("");
+  const [coords, setCoords] = useState<Coords | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>("");
+  const cancelled = useRef(false);
 
+  const resolve = useCallback(async (c: Coords) => {
+    setCoords(c);
+    try { localStorage.setItem(COORDS_KEY, JSON.stringify(c)); } catch {}
+    const g = await reverseGeocode(c);
+    if (cancelled.current) return;
+    const short = g?.short ?? `${c.lat.toFixed(4)}, ${c.lng.toFixed(4)}`;
+    const full = g?.full ?? short;
+    setLabel(short);
+    setAddress(full);
+    try {
+      localStorage.setItem(LABEL_KEY, short);
+      localStorage.setItem(ADDRESS_KEY, full);
+    } catch {}
+  }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const resolve = async (c: Coords) => {
-      const l = await reverseGeocode(c);
-      if (cancelled) return;
-      const next = l ?? `${c.lat.toFixed(3)}, ${c.lng.toFixed(3)}`;
-      setLabel(next);
-      try { localStorage.setItem(LABEL_KEY, next); } catch {}
-    };
-
-    const cachedLabel = readLabel();
-    if (cachedLabel) setLabel(cachedLabel);
-
-    const cached = readCoords();
-    if (cached) void resolve(cached);
-
-
+  const locate = useCallback(() => {
     if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
-      if (!cached && !label) setLabel("Location unavailable");
-      return () => { cancelled = true; };
+      setError("Location unavailable on this device");
+      setLabel((l) => l || "Location unavailable");
+      return;
     }
-
     setLoading(true);
+    setError("");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setLoading(false);
-        const c = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        try { localStorage.setItem(COORDS_KEY, JSON.stringify(c)); } catch {}
-        void resolve(c);
+        void resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       },
-      () => {
+      (err) => {
         setLoading(false);
-        if (!cached && !label) setLabel("Location off");
+        setError(
+          err.code === err.PERMISSION_DENIED
+            ? "Location permission denied"
+            : "Couldn't get your location"
+        );
+        setLabel((l) => l || "Location off");
       },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+      // Always force a fresh, precise fix so the address matches where the user is now.
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
+  }, [resolve]);
 
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useEffect(() => {
+    cancelled.current = false;
 
-  return { label: label || "Locating…", loading };
+    const cachedLabel = readLabel();
+    if (cachedLabel) setLabel(cachedLabel);
+    const cachedAddress = readAddress();
+    if (cachedAddress) setAddress(cachedAddress);
+    const cached = readCoords();
+    if (cached) setCoords(cached);
+
+    locate();
+    return () => { cancelled.current = true; };
+  }, [locate]);
+
+  return {
+    label: label || "Locating…",
+    address,
+    coords,
+    loading,
+    error,
+    refresh: locate,
+  };
 }
