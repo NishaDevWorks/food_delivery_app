@@ -88,9 +88,12 @@ export function useCurrentLocationLabel() {
   const [label, setLabel] = useState<string>("");
   const [address, setAddress] = useState<string>("");
   const [coords, setCoords] = useState<Coords | null>(null);
+  const [accuracy, setAccuracy] = useState<number | null>(null);
   const [status, setStatus] = useState<LocationStatus>("off");
   const [error, setError] = useState<string>("");
   const cancelled = useRef(false);
+  const watchId = useRef<number | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const resolve = useCallback(async (c: Coords) => {
     setCoords(c);
@@ -109,6 +112,14 @@ export function useCurrentLocationLabel() {
     } catch {}
   }, []);
 
+  const stopWatch = useCallback(() => {
+    if (watchId.current !== null && typeof navigator !== "undefined") {
+      navigator.geolocation.clearWatch(watchId.current);
+      watchId.current = null;
+    }
+    if (timer.current) { clearTimeout(timer.current); timer.current = null; }
+  }, []);
+
   const locate = useCallback(() => {
     if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
       setStatus("unavailable");
@@ -118,11 +129,29 @@ export function useCurrentLocationLabel() {
     try { localStorage.setItem(ENABLED_KEY, "1"); } catch {}
     setStatus("detecting");
     setError("");
-    navigator.geolocation.getCurrentPosition(
+    stopWatch();
+
+    // Watch briefly and keep the most accurate fix — the first GPS reading is
+    // often a coarse network estimate several hundred metres off.
+    let best: { c: Coords; acc: number } | null = null;
+    const finish = () => {
+      stopWatch();
+      if (cancelled.current || !best) return;
+      setAccuracy(best.acc);
+      void resolve(best.c);
+    };
+
+    watchId.current = navigator.geolocation.watchPosition(
       (pos) => {
-        void resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        const acc = pos.coords.accuracy ?? 9999;
+        const c = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        if (!best || acc < best.acc) best = { c, acc };
+        // Good enough — stop early.
+        if (acc <= 30) finish();
       },
       (err) => {
+        if (best) { finish(); return; }
+        stopWatch();
         if (err.code === err.PERMISSION_DENIED) {
           setStatus("denied");
           setError("Location permission is required to detect your address");
@@ -138,7 +167,18 @@ export function useCurrentLocationLabel() {
       // Always force a fresh, precise fix so the address matches where the user is now.
       { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
-  }, [resolve]);
+
+    // Cap the convergence window so the UI never hangs.
+    timer.current = setTimeout(() => {
+      if (best) finish();
+      else {
+        stopWatch();
+        setStatus("error");
+        setError("Couldn't get a location fix. Move to an open area and try again");
+      }
+    }, 12000);
+  }, [resolve, stopWatch]);
+
 
   useEffect(() => {
     cancelled.current = false;
