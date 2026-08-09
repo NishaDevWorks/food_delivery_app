@@ -193,8 +193,9 @@ export function useCurrentLocationLabel() {
     // Only re-request permission automatically if the user already opted in.
     if (isLocationEnabled()) locate();
 
-    return () => { cancelled.current = true; };
-  }, [locate]);
+    return () => { cancelled.current = true; stopWatch(); };
+  }, [locate, stopWatch]);
+
 
   const loading = status === "detecting";
 
