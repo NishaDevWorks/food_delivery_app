@@ -43,7 +43,7 @@ function HomePage() {
   const { isRestaurantFav, toggleRestaurant } = useFavorites();
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   const [stats, setStats] = useState<Record<string, Stats>>({});
-  const { label: locationLabel } = useCurrentLocationLabel();
+  const { label: locationLabel, status: locStatus, turnOn: turnOnLocation } = useCurrentLocationLabel();
 
   useEffect(() => {
     fetchOpenStatuses().then(setOpenMap).catch(() => {});
@@ -112,13 +112,16 @@ function HomePage() {
     <MobileShell>
       <div className="px-5 pt-8">
         <div className="flex items-center justify-between">
-          <div className="min-w-0">
+          <button onClick={turnOnLocation} className="min-w-0 text-left">
             <p className="text-xs text-slate-500">Deliver to</p>
             <h2 className="font-bold text-slate-800 truncate flex items-center gap-1">
               <MapPin className="w-4 h-4 text-violet-500 shrink-0" />
               <span className="truncate">{locationLabel}</span>
             </h2>
-          </div>
+            {locStatus !== "ready" && locStatus !== "detecting" && (
+              <span className="text-[11px] text-violet-600 font-semibold">Tap to turn on location</span>
+            )}
+          </button>
           <div className="w-11 h-11 rounded-full bg-gradient-to-br from-violet-300 to-pink-300 flex items-center justify-center text-white font-bold shrink-0">
             R
           </div>
