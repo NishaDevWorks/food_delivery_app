@@ -9,7 +9,7 @@ export function LocationCard({
   loc: ReturnType<typeof useCurrentLocationLabel>;
   className?: string;
 }) {
-  const { status, address, label, coords, error, loading, turnOn } = loc;
+  const { status, address, label, coords, accuracy, error, loading, turnOn } = loc;
   const failed = status === "denied" || status === "unavailable" || status === "error";
 
   return (
