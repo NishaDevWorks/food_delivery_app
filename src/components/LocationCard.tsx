@@ -42,8 +42,10 @@ export function LocationCard({
               {coords && (
                 <p className="text-[11px] text-slate-400 mt-0.5">
                   {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
+                  {accuracy ? ` · ±${Math.round(accuracy)} m` : ""}
                 </p>
               )}
+
             </>
           ) : failed ? (
             <p className="text-sm font-bold text-slate-800">{error}</p>
