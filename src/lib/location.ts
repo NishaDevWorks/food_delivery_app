@@ -3,8 +3,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const COORDS_KEY = "quickbite_location";
 const LABEL_KEY = "quickbite_location_label";
 const ADDRESS_KEY = "quickbite_location_address";
+const ENABLED_KEY = "quickbite_location_enabled";
 
 export type Coords = { lat: number; lng: number };
+
+export type LocationStatus =
+  | "off" // user has not turned location on yet
+  | "detecting"
+  | "ready"
+  | "denied"
+  | "unavailable" // no geolocation support / services disabled
+  | "error";
 
 export function readCoords(): Coords | null {
   try {
@@ -24,8 +33,13 @@ export function readAddress(): string {
   try { return localStorage.getItem(ADDRESS_KEY) || ""; } catch { return ""; }
 }
 
+export function isLocationEnabled(): boolean {
+  try { return localStorage.getItem(ENABLED_KEY) === "1"; } catch { return false; }
+}
+
 type Geo = { short: string; full: string };
 
+/** Reverse geocode coordinates into a readable street address. */
 async function reverseGeocode(c: Coords): Promise<Geo | null> {
   try {
     const res = await fetch(
@@ -36,14 +50,28 @@ async function reverseGeocode(c: Coords): Promise<Geo | null> {
     const data: any = await res.json();
     const a = data?.address ?? {};
 
-    const street = [a.house_number, a.road].filter(Boolean).join(" ");
-    const area = a.neighbourhood || a.suburb || a.quarter || a.hamlet || a.village || a.city_district;
-    const city = a.city || a.town || a.municipality || a.county || a.state_district;
-    const state = a.state;
-    const pin = a.postcode;
+    const house = a.house_number || null;
+    const road = a.road || a.pedestrian || a.footway || a.residential || null;
+    const street = [house, road].filter(Boolean).join(", ");
+    const area =
+      a.neighbourhood || a.suburb || a.quarter || a.hamlet || a.village || a.city_district || null;
+    const city = a.city || a.town || a.municipality || a.county || a.state_district || null;
+    const state = a.state || null;
+    const pin = a.postcode || null;
+    const country = a.country || null;
 
-    const fullParts = [street || a.amenity || null, area, city, state, pin].filter(Boolean);
-    const full = fullParts.length ? Array.from(new Set(fullParts)).join(", ") : (data?.display_name ?? "");
+    // "12, MG Road, Rajkot, Gujarat 360001, India" — include only what exists.
+    const parts: string[] = [];
+    if (street) parts.push(street);
+    else if (a.amenity) parts.push(a.amenity);
+    if (area && area !== city) parts.push(area);
+    if (city) parts.push(city);
+    if (state || pin) parts.push([state, pin].filter(Boolean).join(" "));
+    if (country) parts.push(country);
+
+    const full = parts.length
+      ? Array.from(new Set(parts)).join(", ")
+      : (data?.display_name ?? "");
     const shortParts = [street || area, city && city !== (street || area) ? city : null].filter(Boolean);
     const short = shortParts.join(" · ") || full.split(",").slice(0, 2).join(" · ");
 
@@ -52,12 +80,15 @@ async function reverseGeocode(c: Coords): Promise<Geo | null> {
   } catch { return null; }
 }
 
-/** Live "deliver to" info based on the device's current GPS position. */
+/**
+ * Live "deliver to" info. Permission is requested ONLY when the user
+ * explicitly turns location on (or when they previously turned it on).
+ */
 export function useCurrentLocationLabel() {
   const [label, setLabel] = useState<string>("");
   const [address, setAddress] = useState<string>("");
   const [coords, setCoords] = useState<Coords | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<LocationStatus>("off");
   const [error, setError] = useState<string>("");
   const cancelled = useRef(false);
 
@@ -66,10 +97,12 @@ export function useCurrentLocationLabel() {
     try { localStorage.setItem(COORDS_KEY, JSON.stringify(c)); } catch {}
     const g = await reverseGeocode(c);
     if (cancelled.current) return;
+    // Fall back to coordinates only if geocoding is completely unavailable.
     const short = g?.short ?? `${c.lat.toFixed(4)}, ${c.lng.toFixed(4)}`;
     const full = g?.full ?? short;
     setLabel(short);
     setAddress(full);
+    setStatus("ready");
     try {
       localStorage.setItem(LABEL_KEY, short);
       localStorage.setItem(ADDRESS_KEY, full);
@@ -78,28 +111,32 @@ export function useCurrentLocationLabel() {
 
   const locate = useCallback(() => {
     if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
-      setError("Location unavailable on this device");
-      setLabel((l) => l || "Location unavailable");
+      setStatus("unavailable");
+      setError("Location services aren't available on this device");
       return;
     }
-    setLoading(true);
+    try { localStorage.setItem(ENABLED_KEY, "1"); } catch {}
+    setStatus("detecting");
     setError("");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setLoading(false);
         void resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       },
       (err) => {
-        setLoading(false);
-        setError(
-          err.code === err.PERMISSION_DENIED
-            ? "Location permission denied"
-            : "Couldn't get your location"
-        );
-        setLabel((l) => l || "Location off");
+        if (err.code === err.PERMISSION_DENIED) {
+          setStatus("denied");
+          setError("Location permission is required to detect your address");
+          try { localStorage.removeItem(ENABLED_KEY); } catch {}
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          setStatus("unavailable");
+          setError("Location services are off — turn on GPS and try again");
+        } else {
+          setStatus("error");
+          setError("Couldn't get your location. Please try again");
+        }
       },
       // Always force a fresh, precise fix so the address matches where the user is now.
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
     );
   }, [resolve]);
 
@@ -107,22 +144,35 @@ export function useCurrentLocationLabel() {
     cancelled.current = false;
 
     const cachedLabel = readLabel();
-    if (cachedLabel) setLabel(cachedLabel);
+    if (cachedLabel) { setLabel(cachedLabel); setStatus("ready"); }
     const cachedAddress = readAddress();
     if (cachedAddress) setAddress(cachedAddress);
     const cached = readCoords();
     if (cached) setCoords(cached);
 
-    locate();
+    // Only re-request permission automatically if the user already opted in.
+    if (isLocationEnabled()) locate();
+
     return () => { cancelled.current = true; };
   }, [locate]);
 
+  const loading = status === "detecting";
+
   return {
-    label: label || "Locating…",
+    /** Short label for headers, e.g. "MG Road · Rajkot" */
+    label:
+      status === "detecting" && !label
+        ? "Detecting your location…"
+        : label || (status === "off" ? "Turn on location" : "Location off"),
+    /** Full readable address, e.g. "12, MG Road, Rajkot, Gujarat 360001, India" */
     address,
     coords,
+    status,
     loading,
     error,
+    enabled: status === "ready" || status === "detecting",
+    /** Explicit user action — triggers the OS permission prompt */
+    turnOn: locate,
     refresh: locate,
   };
 }
