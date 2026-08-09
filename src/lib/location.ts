@@ -208,6 +208,9 @@ export function useCurrentLocationLabel() {
     /** Full readable address, e.g. "12, MG Road, Rajkot, Gujarat 360001, India" */
     address,
     coords,
+    /** Fix accuracy in metres, when reported by the device */
+    accuracy,
+
     status,
     loading,
     error,
