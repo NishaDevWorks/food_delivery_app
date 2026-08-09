@@ -9,7 +9,7 @@ export function LocationCard({
   loc: ReturnType<typeof useCurrentLocationLabel>;
   className?: string;
 }) {
-  const { status, address, label, coords, error, loading, turnOn } = loc;
+  const { status, address, label, coords, accuracy, error, loading, turnOn } = loc;
   const failed = status === "denied" || status === "unavailable" || status === "error";
 
   return (
@@ -42,8 +42,10 @@ export function LocationCard({
               {coords && (
                 <p className="text-[11px] text-slate-400 mt-0.5">
                   {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
+                  {accuracy ? ` · ±${Math.round(accuracy)} m` : ""}
                 </p>
               )}
+
             </>
           ) : failed ? (
             <p className="text-sm font-bold text-slate-800">{error}</p>
