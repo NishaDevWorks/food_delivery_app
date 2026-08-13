@@ -37,13 +37,13 @@ export function isLocationEnabled(): boolean {
   try { return localStorage.getItem(ENABLED_KEY) === "1"; } catch { return false; }
 }
 
-type Geo = { short: string; full: string };
+type Geo = { short: string; full: string; hasStreet: boolean };
 
-/** Reverse geocode coordinates into a readable street address. */
-async function reverseGeocode(c: Coords): Promise<Geo | null> {
+/** One reverse-geocode lookup at a given detail zoom. */
+async function lookup(c: Coords, zoom: number): Promise<Geo | null> {
   try {
     const res = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${c.lat}&lon=${c.lng}&zoom=18&addressdetails=1`,
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${c.lat}&lon=${c.lng}&zoom=${zoom}&addressdetails=1`,
       { headers: { Accept: "application/json" } }
     );
     if (!res.ok) return null;
@@ -81,9 +81,38 @@ async function reverseGeocode(c: Coords): Promise<Geo | null> {
     const short = shortParts.join(" · ") || full.split(",").slice(0, 2).join(" · ");
 
     if (!short && !full) return null;
-    return { short: short || full, full: full || short };
+    return { short: short || full, full: full || short, hasStreet: Boolean(road || house) };
   } catch { return null; }
 }
+
+/**
+ * Reverse geocode coordinates into a readable street address. Nominatim
+ * sometimes answers with only a city/area for a given zoom or exact point, so
+ * retry at other detail levels (and a few metres around the fix) until a
+ * street-level result comes back. The best available result is kept either way.
+ */
+async function reverseGeocode(c: Coords): Promise<Geo | null> {
+  // ~15 m offsets — enough to snap onto the nearest addressed way.
+  const d = 0.00014;
+  const attempts: Array<{ c: Coords; zoom: number }> = [
+    { c, zoom: 18 },
+    { c, zoom: 19 },
+    { c, zoom: 17 },
+    { c: { lat: c.lat + d, lng: c.lng }, zoom: 18 },
+    { c: { lat: c.lat - d, lng: c.lng }, zoom: 18 },
+    { c: { lat: c.lat, lng: c.lng + d }, zoom: 18 },
+    { c: { lat: c.lat, lng: c.lng - d }, zoom: 18 },
+  ];
+
+  let best: Geo | null = null;
+  for (const attempt of attempts) {
+    const g = await lookup(attempt.c, attempt.zoom);
+    if (g?.hasStreet) return g;
+    if (g && (!best || g.full.length > best.full.length)) best = g;
+  }
+  return best;
+}
+
 
 /**
  * Live "deliver to" info. Permission is requested ONLY when the user
