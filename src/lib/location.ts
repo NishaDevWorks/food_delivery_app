@@ -50,9 +50,12 @@ async function reverseGeocode(c: Coords): Promise<Geo | null> {
     const data: any = await res.json();
     const a = data?.address ?? {};
 
-    const house = a.house_number || null;
-    const road = a.road || a.pedestrian || a.footway || a.residential || null;
-    const street = [house, road].filter(Boolean).join(", ");
+    const house = a.house_number || a.house_name || null;
+    const road =
+      a.road || a.pedestrian || a.footway || a.residential || a.path || a.cycleway ||
+      a.street || null;
+    const place = data?.name || a.building || a.amenity || a.shop || a.office || null;
+    const street = [house, road || place].filter(Boolean).join(", ");
     const area =
       a.neighbourhood || a.suburb || a.quarter || a.hamlet || a.village || a.city_district || null;
     const city = a.city || a.town || a.municipality || a.county || a.state_district || null;
