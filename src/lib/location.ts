@@ -50,9 +50,12 @@ async function reverseGeocode(c: Coords): Promise<Geo | null> {
     const data: any = await res.json();
     const a = data?.address ?? {};
 
-    const house = a.house_number || null;
-    const road = a.road || a.pedestrian || a.footway || a.residential || null;
-    const street = [house, road].filter(Boolean).join(", ");
+    const house = a.house_number || a.house_name || null;
+    const road =
+      a.road || a.pedestrian || a.footway || a.residential || a.path || a.cycleway ||
+      a.street || null;
+    const place = data?.name || a.building || a.amenity || a.shop || a.office || null;
+    const street = [house, road || place].filter(Boolean).join(", ");
     const area =
       a.neighbourhood || a.suburb || a.quarter || a.hamlet || a.village || a.city_district || null;
     const city = a.city || a.town || a.municipality || a.county || a.state_district || null;
@@ -69,9 +72,11 @@ async function reverseGeocode(c: Coords): Promise<Geo | null> {
     if (state || pin) parts.push([state, pin].filter(Boolean).join(" "));
     if (country) parts.push(country);
 
-    const full = parts.length
-      ? Array.from(new Set(parts)).join(", ")
-      : (data?.display_name ?? "");
+    const composed = Array.from(new Set(parts)).join(", ");
+    const display: string = data?.display_name ?? "";
+    // If we only resolved a couple of coarse fields (e.g. just city + country),
+    // Nominatim's display_name usually carries far more detail — use it instead.
+    const full = parts.length >= 3 ? composed : (display || composed);
     const shortParts = [street || area, city && city !== (street || area) ? city : null].filter(Boolean);
     const short = shortParts.join(" · ") || full.split(",").slice(0, 2).join(" · ");
 

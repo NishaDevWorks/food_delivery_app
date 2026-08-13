@@ -24,6 +24,15 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
 
+  // Indian mobile numbers: 10 digits starting 6-9, optional +91 / 0 prefix.
+  const phoneDigits = phone.replace(/\D/g, "").replace(/^(91|0)(?=\d{10}$)/, "");
+  const phoneError =
+    !phone.trim()
+      ? "Phone number is required"
+      : !/^[6-9]\d{9}$/.test(phoneDigits)
+        ? "Enter a valid 10-digit mobile number"
+        : "";
+
   const [password, setPassword] = useState("");
   const [locStatus, setLocStatus] = useState<"idle" | "granted" | "denied">("idle");
 
@@ -69,9 +78,15 @@ function LoginPage() {
       toast.error("Please fill all fields");
       return;
     }
-    if (tab === "signup" && phone.replace(/\D/g, "").length < 10) {
-      toast.error("Enter a valid phone number");
-      return;
+    if (tab === "signup") {
+      if (phoneError) {
+        toast.error(phoneError);
+        return;
+      }
+      if (password.length < 6) {
+        toast.error("Password must be at least 6 characters");
+        return;
+      }
     }
     setLoading(true);
     try {
@@ -87,7 +102,7 @@ function LoginPage() {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/home`,
-            data: { full_name: name, phone },
+            data: { full_name: name, phone: phoneDigits },
           },
         });
         if (error) throw error;
@@ -182,7 +197,18 @@ function LoginPage() {
           {tab === "signup" && (
             <>
               <Field icon={UserIcon} placeholder="Full name" value={name} onChange={setName} />
-              <Field icon={Phone} placeholder="Phone number" type="tel" value={phone} onChange={setPhone} />
+              <div>
+                <Field
+                  icon={Phone}
+                  placeholder="Phone number (10 digits)"
+                  type="tel"
+                  value={phone}
+                  onChange={(v) => setPhone(v.replace(/[^\d+\s-]/g, "").slice(0, 15))}
+                />
+                {phone.trim() && phoneError && (
+                  <p className="mt-1 ml-1 text-[11px] font-medium text-rose-600">{phoneError}</p>
+                )}
+              </div>
             </>
           )}
 
