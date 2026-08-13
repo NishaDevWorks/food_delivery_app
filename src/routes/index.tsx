@@ -69,9 +69,15 @@ function LoginPage() {
       toast.error("Please fill all fields");
       return;
     }
-    if (tab === "signup" && phone.replace(/\D/g, "").length < 10) {
-      toast.error("Enter a valid phone number");
-      return;
+    if (tab === "signup") {
+      if (phoneError) {
+        toast.error(phoneError);
+        return;
+      }
+      if (password.length < 6) {
+        toast.error("Password must be at least 6 characters");
+        return;
+      }
     }
     setLoading(true);
     try {
