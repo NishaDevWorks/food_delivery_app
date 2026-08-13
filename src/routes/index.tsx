@@ -102,7 +102,7 @@ function LoginPage() {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/home`,
-            data: { full_name: name, phone },
+            data: { full_name: name, phone: phoneDigits },
           },
         });
         if (error) throw error;
