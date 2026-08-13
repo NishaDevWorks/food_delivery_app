@@ -24,6 +24,15 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
 
+  // Indian mobile numbers: 10 digits starting 6-9, optional +91 / 0 prefix.
+  const phoneDigits = phone.replace(/\D/g, "").replace(/^(91|0)(?=\d{10}$)/, "");
+  const phoneError =
+    !phone.trim()
+      ? "Phone number is required"
+      : !/^[6-9]\d{9}$/.test(phoneDigits)
+        ? "Enter a valid 10-digit mobile number"
+        : "";
+
   const [password, setPassword] = useState("");
   const [locStatus, setLocStatus] = useState<"idle" | "granted" | "denied">("idle");
 
