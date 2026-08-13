@@ -43,7 +43,32 @@ function HomePage() {
   const { isRestaurantFav, toggleRestaurant } = useFavorites();
   const [openMap, setOpenMap] = useState<Record<string, boolean>>({});
   const [stats, setStats] = useState<Record<string, Stats>>({});
-  const { label: locationLabel, status: locStatus, turnOn: turnOnLocation } = useCurrentLocationLabel();
+  const { label: locationLabel, address: locationAddress, status: locStatus, turnOn: turnOnLocation } = useCurrentLocationLabel();
+  const [me, setMe] = useState<{ name: string; avatar: string | null }>({ name: "", avatar: null });
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      const user = data.user;
+      if (!user) return;
+      const meta = (user.user_metadata ?? {}) as Record<string, string>;
+      setMe({
+        name: meta.full_name || meta.name || user.email?.split("@")[0] || "",
+        avatar: meta.avatar_url || meta.picture || null,
+      });
+      supabase
+        .from("profiles")
+        .select("display_name, avatar_url")
+        .eq("id", user.id)
+        .maybeSingle()
+        .then(({ data: prof }) => {
+          if (!prof) return;
+          setMe((p) => ({
+            name: prof.display_name || p.name,
+            avatar: prof.avatar_url || p.avatar,
+          }));
+        });
+    });
+  }, []);
 
   useEffect(() => {
     fetchOpenStatuses().then(setOpenMap).catch(() => {});
