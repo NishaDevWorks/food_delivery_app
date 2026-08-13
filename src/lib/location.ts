@@ -72,9 +72,11 @@ async function reverseGeocode(c: Coords): Promise<Geo | null> {
     if (state || pin) parts.push([state, pin].filter(Boolean).join(" "));
     if (country) parts.push(country);
 
-    const full = parts.length
-      ? Array.from(new Set(parts)).join(", ")
-      : (data?.display_name ?? "");
+    const composed = Array.from(new Set(parts)).join(", ");
+    const display: string = data?.display_name ?? "";
+    // If we only resolved a couple of coarse fields (e.g. just city + country),
+    // Nominatim's display_name usually carries far more detail — use it instead.
+    const full = parts.length >= 3 ? composed : (display || composed);
     const shortParts = [street || area, city && city !== (street || area) ? city : null].filter(Boolean);
     const short = shortParts.join(" · ") || full.split(",").slice(0, 2).join(" · ");
 
