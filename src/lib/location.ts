@@ -50,25 +50,33 @@ async function lookup(c: Coords, zoom: number): Promise<Geo | null> {
     const data: any = await res.json();
     const a = data?.address ?? {};
 
-    const house = a.house_number || a.house_name || null;
+    const house = a.house_number || null;
+    const building =
+      a.house_name || a.building || a.apartments || a.residential ||
+      (data?.type && ["building", "house", "apartments"].includes(data.type) ? data?.name : null) ||
+      null;
     const road =
-      a.road || a.pedestrian || a.footway || a.residential || a.path || a.cycleway ||
-      a.street || null;
-    const place = data?.name || a.building || a.amenity || a.shop || a.office || null;
-    const street = [house, road || place].filter(Boolean).join(", ");
-    const area =
-      a.neighbourhood || a.suburb || a.quarter || a.hamlet || a.village || a.city_district || null;
-    const city = a.city || a.town || a.municipality || a.county || a.state_district || null;
-    const state = a.state || null;
+      a.road || a.pedestrian || a.footway || a.path || a.cycleway || a.street || null;
+    const place = data?.name || a.amenity || a.shop || a.office || null;
+    const neighbourhood = a.neighbourhood || a.hamlet || null;
+    const locality = a.suburb || a.quarter || a.city_district || a.village || a.town_district || null;
+    const city = a.city || a.town || a.village || a.municipality || null;
+    const district = a.state_district || a.county || a.district || null;
+    const state = a.state || a.region || null;
     const pin = a.postcode || null;
     const country = a.country || null;
 
-    // "12, MG Road, Rajkot, Gujarat 360001, India" — include only what exists.
+    // "12, Sunrise Apartments, MG Road, Kalawad Area, Nehrunagar, Rajkot,
+    //  Rajkot District, Gujarat 360001, India" — include only what exists.
     const parts: string[] = [];
-    if (street) parts.push(street);
-    else if (a.amenity) parts.push(a.amenity);
-    if (area && area !== city) parts.push(area);
+    if (house) parts.push(house);
+    if (building) parts.push(building);
+    if (road) parts.push(road);
+    else if (!building && place) parts.push(place);
+    if (neighbourhood) parts.push(neighbourhood);
+    if (locality && locality !== neighbourhood) parts.push(locality);
     if (city) parts.push(city);
+    if (district && district !== city) parts.push(district);
     if (state || pin) parts.push([state, pin].filter(Boolean).join(" "));
     if (country) parts.push(country);
 
@@ -77,7 +85,9 @@ async function lookup(c: Coords, zoom: number): Promise<Geo | null> {
     // If we only resolved a couple of coarse fields (e.g. just city + country),
     // Nominatim's display_name usually carries far more detail — use it instead.
     const full = parts.length >= 3 ? composed : (display || composed);
-    const shortParts = [street || area, city && city !== (street || area) ? city : null].filter(Boolean);
+    const streetLine = [house, road || building || place].filter(Boolean).join(", ");
+    const area = neighbourhood || locality;
+    const shortParts = [streetLine || area, city && city !== (streetLine || area) ? city : null].filter(Boolean);
     const short = shortParts.join(" · ") || full.split(",").slice(0, 2).join(" · ");
 
     if (!short && !full) return null;
