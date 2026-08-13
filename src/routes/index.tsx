@@ -197,7 +197,18 @@ function LoginPage() {
           {tab === "signup" && (
             <>
               <Field icon={UserIcon} placeholder="Full name" value={name} onChange={setName} />
-              <Field icon={Phone} placeholder="Phone number" type="tel" value={phone} onChange={setPhone} />
+              <div>
+                <Field
+                  icon={Phone}
+                  placeholder="Phone number (10 digits)"
+                  type="tel"
+                  value={phone}
+                  onChange={(v) => setPhone(v.replace(/[^\d+\s-]/g, "").slice(0, 15))}
+                />
+                {phone.trim() && phoneError && (
+                  <p className="mt-1 ml-1 text-[11px] font-medium text-rose-600">{phoneError}</p>
+                )}
+              </div>
             </>
           )}
 
