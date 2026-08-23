@@ -73,7 +73,7 @@ function TrackPage() {
       return;
     }
     const id = activeOrder?.items?.[0]?.restaurantId || "demo";
-    const hash = id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+    const hash = id.split("").reduce((acc: number, ch: string) => acc + ch.charCodeAt(0), 0);
     const latOff = 0.005 + ((hash % 10) * 0.001);
     const lngOff = 0.005 + (((hash * 7) % 10) * 0.001);
     setRestaurant([customer[0] + latOff, customer[1] + lngOff]);
