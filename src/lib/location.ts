@@ -184,22 +184,44 @@ async function lookup(c: Coords, zoom: number): Promise<Geo | null> {
 }
 
 /**
+ * Build a ring of points around the fix at a given radius (metres), used to
+ * probe nearby tagged roads/buildings when the exact point has no address
+ * data of its own. 8 compass directions gives much better odds than 4 in
+ * areas with patchy OSM coverage (common for Indian residential streets).
+ */
+function ring(c: Coords, metres: number): Coords[] {
+  const dLat = metres / 111320; // ~metres per degree latitude
+  const dLng = metres / (111320 * Math.cos((c.lat * Math.PI) / 180) || 1);
+  const dirs = [
+    [1, 0], [-1, 0], [0, 1], [0, -1],
+    [0.7071, 0.7071], [0.7071, -0.7071], [-0.7071, 0.7071], [-0.7071, -0.7071],
+  ];
+  return dirs.map(([latMul, lngMul]) => ({
+    lat: c.lat + dLat * latMul,
+    lng: c.lng + dLng * lngMul,
+  }));
+}
+
+/**
  * Reverse geocode coordinates into a detailed address. Nominatim sometimes
  * answers with only a city/area for a given zoom or exact point, so retry at
- * other detail levels (and a few metres around the fix) until a street-level
- * result comes back. Component data from coarser answers is merged in so that
- * city/district/state/PIN are never lost.
+ * other detail levels and progressively wider rings of nearby points (15m,
+ * then 40m) until a street-level result comes back. Component data from
+ * coarser answers is merged in so that city/district/state/PIN are never
+ * lost even when a street-level match is found only nearby.
+ *
+ * Note: if OpenStreetMap simply has no house_number/road tag anywhere near
+ * a location (common for many Indian housing societies), no amount of
+ * retrying can produce data that doesn't exist upstream — that's the
+ * remaining gap the "Flat / building" manual entry in LocationCard covers.
  */
 async function reverseGeocode(c: Coords): Promise<Geo | null> {
-  const d = 0.00014; // ~15 m — enough to snap onto the nearest addressed way
   const attempts: Array<{ c: Coords; zoom: number }> = [
-    { c, zoom: 18 },
     { c, zoom: 19 },
+    { c, zoom: 18 },
     { c, zoom: 17 },
-    { c: { lat: c.lat + d, lng: c.lng }, zoom: 18 },
-    { c: { lat: c.lat - d, lng: c.lng }, zoom: 18 },
-    { c: { lat: c.lat, lng: c.lng + d }, zoom: 18 },
-    { c: { lat: c.lat, lng: c.lng - d }, zoom: 18 },
+    ...ring(c, 15).map((p) => ({ c: p, zoom: 18 })),
+    ...ring(c, 40).map((p) => ({ c: p, zoom: 18 })),
   ];
 
   let best: Geo | null = null;
