@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Phone, MessageCircle, CheckCircle2, Star, Radio } from "lucide-react";
+import { ArrowLeft, Phone, MessageCircle, CheckCircle2, Star, Radio, LocateFixed, MapPin } from "lucide-react";
 import { MobileShell } from "@/components/MobileShell";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { addReview } from "@/lib/reviews";
 import { updateOrder } from "@/lib/orders";
+import { useCurrentLocationLabel } from "@/lib/location";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -21,8 +22,7 @@ export const Route = createFileRoute("/track")({
   component: TrackPage,
 });
 
-const CUSTOMER: [number, number] = [19.076, 72.8777];
-const RESTAURANT: [number, number] = [19.09, 72.86];
+const INDIA_CENTER: [number, number] = [20.5937, 78.9629];
 
 const steps = [
   { label: "Order confirmed", desc: "Restaurant accepted your order" },
@@ -42,8 +42,21 @@ function easeInOut(t: number) {
 function TrackPage() {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
+  const customerMarker = useRef<any>(null);
+  const restaurantMarker = useRef<any>(null);
   const courierMarker = useRef<any>(null);
+  const fullRoute = useRef<any>(null);
   const traveledLine = useRef<any>(null);
+  const startRef = useRef<[number, number] | null>(null);
+  const endRef = useRef<[number, number] | null>(null);
+
+  const location = useCurrentLocationLabel();
+  const customer = useMemo<[number, number] | null>(
+    () => (location.coords ? [location.coords.lat, location.coords.lng] : null),
+    [location.coords]
+  );
+  const [restaurant, setRestaurant] = useState<[number, number] | null>(null);
+
   const [progress, setProgress] = useState(0);
   const [stepIdx, setStepIdx] = useState(1);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -52,6 +65,19 @@ function TrackPage() {
   const [reviewed, setReviewed] = useState(false);
   const [activeOrder, setActiveOrder] = useState<any>(null);
   const [liveConnected, setLiveConnected] = useState(false);
+
+  // Derive a deterministic demo restaurant location near the customer's real location.
+  useEffect(() => {
+    if (!customer) {
+      setRestaurant(null);
+      return;
+    }
+    const id = activeOrder?.items?.[0]?.restaurantId || "demo";
+    const hash = id.split("").reduce((acc: number, ch: string) => acc + ch.charCodeAt(0), 0);
+    const latOff = 0.005 + ((hash % 10) * 0.001);
+    const lngOff = 0.005 + (((hash * 7) % 10) * 0.001);
+    setRestaurant([customer[0] + latOff, customer[1] + lngOff]);
+  }, [customer, activeOrder?.items?.[0]?.restaurantId]);
 
   useEffect(() => {
     try {
@@ -88,6 +114,7 @@ function TrackPage() {
     };
   }, [activeOrder?.id]);
 
+  // Initialise Leaflet map once.
   useEffect(() => {
     let mounted = true;
     let interval: any;
@@ -98,7 +125,7 @@ function TrackPage() {
       const map = L.map(mapRef.current, {
         zoomControl: false,
         attributionControl: false,
-      }).setView([(CUSTOMER[0] + RESTAURANT[0]) / 2, (CUSTOMER[1] + RESTAURANT[1]) / 2], 13);
+      }).setView(INDIA_CENTER, 5);
       mapInstance.current = map;
 
       L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
@@ -128,38 +155,32 @@ function TrackPage() {
         iconAnchor: [21, 21],
       });
 
-      L.marker(CUSTOMER, { icon: customerIcon }).addTo(map);
-      L.marker(RESTAURANT, { icon: restaurantIcon }).addTo(map);
-
-      // Dashed full route (the planned path)
-      L.polyline([RESTAURANT, CUSTOMER], {
+      customerMarker.current = L.marker([0, 0], { icon: customerIcon });
+      restaurantMarker.current = L.marker([0, 0], { icon: restaurantIcon });
+      courierMarker.current = L.marker([0, 0], { icon: courierIcon });
+      fullRoute.current = L.polyline([], {
         color: "#cbd5e1",
         weight: 4,
         opacity: 0.8,
         dashArray: "6,8",
-      }).addTo(map);
-
-      // Solid traveled line that grows as courier moves
-      traveledLine.current = L.polyline([RESTAURANT], {
+      });
+      traveledLine.current = L.polyline([], {
         color: "#8b5cf6",
         weight: 5,
         opacity: 0.9,
-      }).addTo(map);
-
-      courierMarker.current = L.marker(RESTAURANT, { icon: courierIcon }).addTo(map);
-
-      map.fitBounds([RESTAURANT, CUSTOMER], { padding: [50, 50] });
+      });
 
       interval = setInterval(() => {
         setProgress((p) => {
+          if (!startRef.current || !endRef.current) return p;
           const next = Math.min(1, p + 0.01);
           const t = easeInOut(next);
           if (courierMarker.current) {
-            const lat = lerp(RESTAURANT[0], CUSTOMER[0], t);
-            const lng = lerp(RESTAURANT[1], CUSTOMER[1], t);
+            const lat = lerp(startRef.current[0], endRef.current[0], t);
+            const lng = lerp(startRef.current[1], endRef.current[1], t);
             courierMarker.current.setLatLng([lat, lng]);
             if (traveledLine.current) {
-              traveledLine.current.setLatLngs([RESTAURANT, [lat, lng]]);
+              traveledLine.current.setLatLngs([startRef.current, [lat, lng]]);
             }
           }
           if (next >= 1) setStepIdx(3);
@@ -178,6 +199,32 @@ function TrackPage() {
       }
     };
   }, []);
+
+  // Update map view, markers and route whenever the user's real location (or the derived restaurant point) changes.
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map) return;
+
+    if (customer && restaurant) {
+      startRef.current = restaurant;
+      endRef.current = customer;
+
+      customerMarker.current.setLatLng(customer).addTo(map);
+      restaurantMarker.current.setLatLng(restaurant).addTo(map);
+      courierMarker.current.setLatLng(restaurant).addTo(map);
+      fullRoute.current.setLatLngs([restaurant, customer]).addTo(map);
+      traveledLine.current.setLatLngs([restaurant]).addTo(map);
+
+      map.fitBounds([restaurant, customer], { padding: [50, 50] });
+      setProgress(0);
+    } else if (customer) {
+      endRef.current = customer;
+      customerMarker.current.setLatLng(customer).addTo(map);
+      map.setView(customer, 13);
+    } else {
+      map.setView(INDIA_CENTER, 5);
+    }
+  }, [customer, restaurant]);
 
   // When delivered, update order status + prompt review once
   useEffect(() => {
@@ -212,6 +259,7 @@ function TrackPage() {
 
   const etaMin = Math.max(0, Math.round((1 - progress) * 15));
   const delivered = stepIdx === 3;
+  const locationReady = !!customer;
 
   return (
     <MobileShell>
@@ -223,6 +271,30 @@ function TrackPage() {
         >
           <ArrowLeft className="w-5 h-5 text-slate-700" />
         </Link>
+
+        {!locationReady && (
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center text-center px-6 z-[400]">
+            <div className="w-14 h-14 rounded-2xl bg-violet-100 text-violet-600 flex items-center justify-center mb-3">
+              <MapPin className="w-7 h-7" />
+            </div>
+            <p className="text-sm font-bold text-slate-800">Location is off</p>
+            <p className="text-xs text-slate-500 mt-1 max-w-[260px]">
+              Turn on location so we can show your order on the map near your real address.
+            </p>
+            <button
+              onClick={location.turnOn}
+              disabled={location.loading}
+              className="mt-4 inline-flex items-center gap-1.5 h-10 px-5 rounded-full bg-gradient-to-r from-violet-500 to-pink-500 text-white text-[12px] font-bold shadow disabled:opacity-60"
+            >
+              {location.loading ? (
+                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <LocateFixed className="w-3.5 h-3.5" />
+              )}
+              {location.loading ? "Detecting…" : "Turn On Location"}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="px-5 -mt-6 relative">
