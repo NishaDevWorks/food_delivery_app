@@ -203,6 +203,42 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_methods: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          is_default: boolean
+          masked_identifier: string | null
+          method_type: string
+          provider: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id?: string
+          is_default?: boolean
+          masked_identifier?: string | null
+          method_type: string
+          provider?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          is_default?: boolean
+          masked_identifier?: string | null
+          method_type?: string
+          provider?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -336,6 +372,78 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      saved_addresses: {
+        Row: {
+          area: string | null
+          building_name: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          district: string | null
+          formatted_address: string
+          house_number: string | null
+          id: string
+          is_default: boolean
+          label: string
+          latitude: number | null
+          longitude: number | null
+          postal_code: string | null
+          raw_geocode: Json | null
+          road: string | null
+          society: string | null
+          state: string | null
+          suburb: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          area?: string | null
+          building_name?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          district?: string | null
+          formatted_address: string
+          house_number?: string | null
+          id?: string
+          is_default?: boolean
+          label?: string
+          latitude?: number | null
+          longitude?: number | null
+          postal_code?: string | null
+          raw_geocode?: Json | null
+          road?: string | null
+          society?: string | null
+          state?: string | null
+          suburb?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          area?: string | null
+          building_name?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          district?: string | null
+          formatted_address?: string
+          house_number?: string | null
+          id?: string
+          is_default?: boolean
+          label?: string
+          latitude?: number | null
+          longitude?: number | null
+          postal_code?: string | null
+          raw_geocode?: Json | null
+          road?: string | null
+          society?: string | null
+          state?: string | null
+          suburb?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
