@@ -1,3 +1,4 @@
 - [ ] Convert application source from TypeScript/TSX to JavaScript/JSX without changing behavior
 - [ ] Add only genuinely missing database tables through a migration, with grants and RLS
 - [ ] Verify route generation, build, and the live app
+- [x] Verify the existing Lovable Cloud backend connection, auth configuration, tables, relationships, indexes, grants, and RLS policies
