@@ -2,3 +2,6 @@
 - [ ] Add only genuinely missing database tables through a migration, with grants and RLS
 - [ ] Verify route generation, build, and the live app
 - [x] Verify the existing Lovable Cloud backend connection, auth configuration, tables, relationships, indexes, grants, and RLS policies
+- [x] Connect and configure Google authentication while keeping email signup confirmation enabled
+- [x] Add foreign-key relationships for saved addresses and payment methods
+- [x] Harden callable security-definer functions and remove unsafe self-service ownership claiming
