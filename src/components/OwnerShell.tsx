@@ -1,7 +1,7 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { LayoutDashboard, ClipboardList, UtensilsCrossed, Settings, BarChart3, ArrowLeft, Store, ChevronDown, MessageSquare, Tag, Bell } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { fetchMyRestaurants, isOwner, claimDemoRestaurant, type OwnedRestaurant } from "@/lib/owner-api";
+import { fetchMyRestaurants, isOwner, type OwnedRestaurant } from "@/lib/owner-api";
 import { restaurants as staticRestaurants } from "@/lib/data";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -36,7 +36,6 @@ export function OwnerShell({ children }: { children: ReactNode }) {
   const [mine, setMine] = useState<OwnedRestaurant[]>([]);
   const [rid, setRid] = useActiveRestaurant();
   const [switchOpen, setSwitchOpen] = useState(false);
-  const [claiming, setClaiming] = useState<string | null>(null);
 
   async function refresh() {
     setLoading(true);
@@ -58,19 +57,6 @@ export function OwnerShell({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function claim(id: string) {
-    setClaiming(id);
-    try {
-      await claimDemoRestaurant(id);
-      toast.success("You're now the owner!");
-      await refresh();
-    } catch (e: any) {
-      toast.error(e.message || "Failed to claim");
-    } finally {
-      setClaiming(null);
-    }
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-100 via-pink-50 to-sky-100">
@@ -79,9 +65,8 @@ export function OwnerShell({ children }: { children: ReactNode }) {
     );
   }
 
-  // No owner role or no restaurants → onboarding
+  // No owner role or no restaurants → access request state
   if (!owner || mine.length === 0) {
-    const unowned = staticRestaurants;
     return (
       <div className="min-h-screen bg-gradient-to-br from-violet-100 via-pink-50 to-sky-100 p-6">
         <div className="max-w-2xl mx-auto">
@@ -98,27 +83,12 @@ export function OwnerShell({ children }: { children: ReactNode }) {
                 <p className="text-xs text-slate-500">Manage your restaurant, menu, orders and earnings</p>
               </div>
             </div>
-            <p className="mt-4 text-sm text-slate-600">
-              You don't own any restaurant yet. Pick a demo restaurant below to claim ownership and try the dashboard.
-            </p>
-            <div className="mt-4 space-y-2">
-              {unowned.map((r) => (
-                <div key={r.id} className="flex items-center gap-3 bg-slate-50 rounded-2xl p-3">
-                  <img src={r.image} alt="" className="w-14 h-14 rounded-xl object-cover" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm text-slate-800 truncate">{r.name}</p>
-                    <p className="text-[11px] text-slate-500 truncate">{r.cuisine}</p>
-                  </div>
-                  <button
-                    disabled={claiming === r.id}
-                    onClick={() => claim(r.id)}
-                    className="px-4 h-10 rounded-xl bg-gradient-to-r from-violet-500 to-pink-500 text-white text-xs font-bold disabled:opacity-60"
-                  >
-                    {claiming === r.id ? "…" : "Claim"}
-                  </button>
-                </div>
-              ))}
-            </div>
+             <p className="mt-4 text-sm text-slate-600">
+               Owner access has not been assigned to this account yet. Ask an administrator to connect your restaurant before opening the dashboard.
+             </p>
+             <Link to="/home" className="mt-5 inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-4 text-xs font-bold text-white">
+               Back to QuickBite
+             </Link>
           </div>
         </div>
       </div>
