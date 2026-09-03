@@ -2,9 +2,7 @@ import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { LayoutDashboard, ClipboardList, UtensilsCrossed, Settings, BarChart3, ArrowLeft, Store, ChevronDown, MessageSquare, Tag, Bell } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { fetchMyRestaurants, isOwner, type OwnedRestaurant } from "@/lib/owner-api";
-import { restaurants as staticRestaurants } from "@/lib/data";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 const OWNER_KEY = "quickbite_owner_active";
 
