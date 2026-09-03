@@ -29,13 +29,6 @@ export async function isOwner(): Promise<boolean> {
   return !!data;
 }
 
-export async function claimDemoRestaurant(restaurantId: string) {
-  const { error } = await supabase.rpc("claim_restaurant_ownership", {
-    _restaurant_id: restaurantId,
-  });
-  if (error) throw error;
-}
-
 // --- Restaurant settings ---
 export type RestaurantSettings = {
   restaurant_id: string;
