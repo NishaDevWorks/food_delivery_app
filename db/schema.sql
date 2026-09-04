@@ -7,7 +7,12 @@
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
-CREATE TYPE public.app_role AS ENUM ('admin', 'owner', 'customer');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typnamespace = 'public'::regnamespace AND typname = 'app_role') THEN
+    CREATE TYPE public.app_role AS ENUM ('admin', 'owner', 'customer');
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -18,6 +23,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone text;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.profiles TO authenticated;
 GRANT ALL ON public.profiles TO service_role;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -141,6 +147,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
   placed_at timestamptz NOT NULL DEFAULT now(),
   restaurant_id text
 );
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS restaurant_id text;
 CREATE INDEX IF NOT EXISTS orders_user_placed_idx ON public.orders (user_id, placed_at DESC);
 CREATE INDEX IF NOT EXISTS orders_restaurant_idx ON public.orders (restaurant_id, placed_at DESC);
 GRANT SELECT, INSERT, UPDATE ON public.orders TO authenticated;
@@ -361,7 +368,18 @@ REVOKE ALL ON FUNCTION public.notify_order_status() FROM PUBLIC, anon, authentic
 DROP TRIGGER IF EXISTS trg_notify_order_status ON public.orders;
 CREATE TRIGGER trg_notify_order_status AFTER UPDATE OF status ON public.orders FOR EACH ROW EXECUTE FUNCTION public.notify_order_status();
 
-ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.reviews;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.coupons;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'orders') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'notifications') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'reviews') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.reviews;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'coupons') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.coupons;
+  END IF;
+END $$;
