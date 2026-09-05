@@ -10,7 +10,7 @@ import { reviewsFor, refreshReviewsFor, addReview, avgRating } from "@/lib/revie
 import { fetchSettings } from "@/lib/owner-api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-export const Route = createFileRoute("/restaurant/$id")({
+export const Route = createFileRoute("/restaurant/$i")({
     loader: ({ params }) => {
         const r = findRestaurant(params.id);
         if (!r)

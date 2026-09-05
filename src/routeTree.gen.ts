@@ -23,7 +23,7 @@ import { Route as CartRouteImport } from './routes/cart'
 import { Route as AddressesRouteImport } from './routes/addresses'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as OwnerIndexRouteImport } from './routes/owner.index'
-import { Route as RestaurantIdRouteImport } from './routes/restaurant.$id'
+import { Route as RestaurantIRouteImport } from './routes/restaurant.$i'
 import { Route as OwnerSettingsRouteImport } from './routes/owner.settings'
 import { Route as OwnerReviewsRouteImport } from './routes/owner.reviews'
 import { Route as OwnerOrdersRouteImport } from './routes/owner.orders'
@@ -31,7 +31,7 @@ import { Route as OwnerNotificationsRouteImport } from './routes/owner.notificat
 import { Route as OwnerMenuRouteImport } from './routes/owner.menu'
 import { Route as OwnerCouponsRouteImport } from './routes/owner.coupons'
 import { Route as OwnerAnalyticsRouteImport } from './routes/owner.analytics'
-import { Route as InvoiceIdRouteImport } from './routes/invoice.$id'
+import { Route as InvoiceIRouteImport } from './routes/invoice.$i'
 
 const TrackRoute = TrackRouteImport.update({
   id: '/track',
@@ -103,9 +103,9 @@ const OwnerIndexRoute = OwnerIndexRouteImport.update({
   path: '/',
   getParentRoute: () => OwnerRoute,
 } as any)
-const RestaurantIdRoute = RestaurantIdRouteImport.update({
-  id: '/restaurant/$id',
-  path: '/restaurant/$id',
+const RestaurantIRoute = RestaurantIRouteImport.update({
+  id: '/restaurant/$i',
+  path: '/restaurant/$i',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OwnerSettingsRoute = OwnerSettingsRouteImport.update({
@@ -143,9 +143,9 @@ const OwnerAnalyticsRoute = OwnerAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => OwnerRoute,
 } as any)
-const InvoiceIdRoute = InvoiceIdRouteImport.update({
-  id: '/invoice/$id',
-  path: '/invoice/$id',
+const InvoiceIRoute = InvoiceIRouteImport.update({
+  id: '/invoice/$i',
+  path: '/invoice/$i',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -163,7 +163,7 @@ export interface FileRoutesByFullPath {
   '/payments': typeof PaymentsRoute
   '/profile': typeof ProfileRoute
   '/track': typeof TrackRoute
-  '/invoice/$id': typeof InvoiceIdRoute
+  '/invoice/$i': typeof InvoiceIRoute
   '/owner/analytics': typeof OwnerAnalyticsRoute
   '/owner/coupons': typeof OwnerCouponsRoute
   '/owner/menu': typeof OwnerMenuRoute
@@ -171,7 +171,7 @@ export interface FileRoutesByFullPath {
   '/owner/orders': typeof OwnerOrdersRoute
   '/owner/reviews': typeof OwnerReviewsRoute
   '/owner/settings': typeof OwnerSettingsRoute
-  '/restaurant/$id': typeof RestaurantIdRoute
+  '/restaurant/$i': typeof RestaurantIRoute
   '/owner/': typeof OwnerIndexRoute
 }
 export interface FileRoutesByTo {
@@ -187,7 +187,7 @@ export interface FileRoutesByTo {
   '/payments': typeof PaymentsRoute
   '/profile': typeof ProfileRoute
   '/track': typeof TrackRoute
-  '/invoice/$id': typeof InvoiceIdRoute
+  '/invoice/$i': typeof InvoiceIRoute
   '/owner/analytics': typeof OwnerAnalyticsRoute
   '/owner/coupons': typeof OwnerCouponsRoute
   '/owner/menu': typeof OwnerMenuRoute
@@ -195,7 +195,7 @@ export interface FileRoutesByTo {
   '/owner/orders': typeof OwnerOrdersRoute
   '/owner/reviews': typeof OwnerReviewsRoute
   '/owner/settings': typeof OwnerSettingsRoute
-  '/restaurant/$id': typeof RestaurantIdRoute
+  '/restaurant/$i': typeof RestaurantIRoute
   '/owner': typeof OwnerIndexRoute
 }
 export interface FileRoutesById {
@@ -213,7 +213,7 @@ export interface FileRoutesById {
   '/payments': typeof PaymentsRoute
   '/profile': typeof ProfileRoute
   '/track': typeof TrackRoute
-  '/invoice/$id': typeof InvoiceIdRoute
+  '/invoice/$i': typeof InvoiceIRoute
   '/owner/analytics': typeof OwnerAnalyticsRoute
   '/owner/coupons': typeof OwnerCouponsRoute
   '/owner/menu': typeof OwnerMenuRoute
@@ -221,7 +221,7 @@ export interface FileRoutesById {
   '/owner/orders': typeof OwnerOrdersRoute
   '/owner/reviews': typeof OwnerReviewsRoute
   '/owner/settings': typeof OwnerSettingsRoute
-  '/restaurant/$id': typeof RestaurantIdRoute
+  '/restaurant/$i': typeof RestaurantIRoute
   '/owner/': typeof OwnerIndexRoute
 }
 export interface FileRouteTypes {
@@ -240,7 +240,7 @@ export interface FileRouteTypes {
     | '/payments'
     | '/profile'
     | '/track'
-    | '/invoice/$id'
+    | '/invoice/$i'
     | '/owner/analytics'
     | '/owner/coupons'
     | '/owner/menu'
@@ -248,7 +248,7 @@ export interface FileRouteTypes {
     | '/owner/orders'
     | '/owner/reviews'
     | '/owner/settings'
-    | '/restaurant/$id'
+    | '/restaurant/$i'
     | '/owner/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -264,7 +264,7 @@ export interface FileRouteTypes {
     | '/payments'
     | '/profile'
     | '/track'
-    | '/invoice/$id'
+    | '/invoice/$i'
     | '/owner/analytics'
     | '/owner/coupons'
     | '/owner/menu'
@@ -272,7 +272,7 @@ export interface FileRouteTypes {
     | '/owner/orders'
     | '/owner/reviews'
     | '/owner/settings'
-    | '/restaurant/$id'
+    | '/restaurant/$i'
     | '/owner'
   id:
     | '__root__'
@@ -289,7 +289,7 @@ export interface FileRouteTypes {
     | '/payments'
     | '/profile'
     | '/track'
-    | '/invoice/$id'
+    | '/invoice/$i'
     | '/owner/analytics'
     | '/owner/coupons'
     | '/owner/menu'
@@ -297,7 +297,7 @@ export interface FileRouteTypes {
     | '/owner/orders'
     | '/owner/reviews'
     | '/owner/settings'
-    | '/restaurant/$id'
+    | '/restaurant/$i'
     | '/owner/'
   fileRoutesById: FileRoutesById
 }
@@ -315,8 +315,8 @@ export interface RootRouteChildren {
   PaymentsRoute: typeof PaymentsRoute
   ProfileRoute: typeof ProfileRoute
   TrackRoute: typeof TrackRoute
-  InvoiceIdRoute: typeof InvoiceIdRoute
-  RestaurantIdRoute: typeof RestaurantIdRoute
+  InvoiceIRoute: typeof InvoiceIRoute
+  RestaurantIRoute: typeof RestaurantIRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -419,11 +419,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OwnerIndexRouteImport
       parentRoute: typeof OwnerRoute
     }
-    '/restaurant/$id': {
-      id: '/restaurant/$id'
-      path: '/restaurant/$id'
-      fullPath: '/restaurant/$id'
-      preLoaderRoute: typeof RestaurantIdRouteImport
+    '/restaurant/$i': {
+      id: '/restaurant/$i'
+      path: '/restaurant/$i'
+      fullPath: '/restaurant/$i'
+      preLoaderRoute: typeof RestaurantIRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/owner/settings': {
@@ -475,11 +475,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OwnerAnalyticsRouteImport
       parentRoute: typeof OwnerRoute
     }
-    '/invoice/$id': {
-      id: '/invoice/$id'
-      path: '/invoice/$id'
-      fullPath: '/invoice/$id'
-      preLoaderRoute: typeof InvoiceIdRouteImport
+    '/invoice/$i': {
+      id: '/invoice/$i'
+      path: '/invoice/$i'
+      fullPath: '/invoice/$i'
+      preLoaderRoute: typeof InvoiceIRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -523,8 +523,8 @@ const rootRouteChildren: RootRouteChildren = {
   PaymentsRoute: PaymentsRoute,
   ProfileRoute: ProfileRoute,
   TrackRoute: TrackRoute,
-  InvoiceIdRoute: InvoiceIdRoute,
-  RestaurantIdRoute: RestaurantIdRoute,
+  InvoiceIRoute: InvoiceIRoute,
+  RestaurantIRoute: RestaurantIRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
