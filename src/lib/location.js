@@ -143,25 +143,67 @@ export function formatAddressLines(p, manual = emptyManual) {
     const l4 = [p.district && p.district !== p.city ? p.district : "", p.country].filter(Boolean).join(", ");
     return [l1, l2, l3, l4].filter(Boolean);
 }
-/** One reverse-geocode lookup at a given detail zoom. */
+/** Convert BigDataCloud's key/value administrative list into address fields. */
+function mapBigDataCloudParts(data) {
+    const administrative = Array.isArray(data?.localityInfo?.administrative)
+        ? data.localityInfo.administrative
+        : [];
+    const names = administrative.map((item) => s(item?.name)).filter(Boolean);
+    const city = s(data?.city) || s(data?.locality) || s(data?.principalSubdivision);
+    const state = s(data?.principalSubdivision);
+    const district = names.find((name) => name !== city && name !== state) || "";
+    const parts = {
+        ...emptyParts,
+        road: s(data?.localityInfo?.informative?.[0]?.name),
+        area: s(data?.locality) || s(data?.localityInfo?.informative?.[1]?.name),
+        city,
+        district,
+        state,
+        postcode: s(data?.postcode),
+        country: s(data?.countryName),
+    };
+    return { parts, filled: Object.values(parts).filter(Boolean).length };
+}
+/** One reverse-geocode lookup at a given detail zoom. No API key is required. */
 async function lookup(c, zoom) {
     try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${c.lat}&lon=${c.lng}&zoom=${zoom}&addressdetails=1&extratags=1&namedetails=1&accept-language=en`, { headers: { Accept: "application/json" } });
-        if (!res.ok)
-            return null;
-        const data = await res.json();
-        if (!data || data.error)
-            return null;
-        const parts = mapParts(data);
-        const filled = Object.values(parts).filter(Boolean).length;
-        if (!filled)
-            return null;
-        return {
-            parts,
-            raw: data,
-            hasStreet: Boolean(parts.road || parts.houseNumber || parts.building),
-            display: s(data.display_name),
-        };
+        const nominatimUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${c.lat}&lon=${c.lng}&zoom=${zoom}&addressdetails=1&extratags=1&namedetails=1&accept-language=en`;
+        const broadUrl = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${c.lat}&longitude=${c.lng}&localityLanguage=en`;
+        const responses = await Promise.allSettled([
+            fetch(nominatimUrl, { headers: { Accept: "application/json" } }),
+            fetch(broadUrl, { headers: { Accept: "application/json" } }),
+        ]);
+        const nominatimResponse = responses[0].status === "fulfilled" ? responses[0].value : null;
+        if (nominatimResponse?.ok) {
+            const data = await nominatimResponse.json();
+            if (data && !data.error) {
+                const parts = mapParts(data);
+                const filled = Object.values(parts).filter(Boolean).length;
+                if (filled) {
+                    return {
+                        parts,
+                        raw: { provider: "nominatim", response: data },
+                        hasStreet: Boolean(parts.road || parts.houseNumber || parts.building),
+                        display: s(data.display_name),
+                    };
+                }
+            }
+        }
+        const broadResponse = responses[1].status === "fulfilled" ? responses[1].value : null;
+        if (broadResponse?.ok) {
+            const data = await broadResponse.json();
+            const mapped = mapBigDataCloudParts(data);
+            if (mapped.filled) {
+                return {
+                    parts: mapped.parts,
+                    raw: { provider: "bigdatacloud", response: data },
+                    hasStreet: Boolean(mapped.parts.road),
+                    display: [data?.locality, data?.city, data?.principalSubdivision, data?.postcode]
+                        .map(s).filter(Boolean).join(", "),
+                };
+            }
+        }
+        return null;
     }
     catch {
         return null;
@@ -289,9 +331,9 @@ export function useCurrentLocationLabel() {
         if (cancelled.current)
             return;
         if (!g) {
-            // Geocoding unavailable — keep the exact coordinates so ordering still works.
+            // Geocoding unavailable — keep the exact GPS coordinates. Never invent an address.
             setStatus("ready");
-            setError("Couldn't look up the address — you can enter it manually");
+            setError("GPS location detected, but the address service is unavailable. Enter your address manually.");
             return;
         }
         setParts(g.parts);
@@ -403,8 +445,11 @@ export function useCurrentLocationLabel() {
         }
         setRaw(readRawGeocode());
         const cached = readCoords();
-        if (cached)
+        if (cached) {
             setCoords(cached);
+            if (!Object.values(cachedParts).some(Boolean))
+                setStatus("ready");
+        }
         // Only re-request permission automatically if the user already opted in.
         if (isLocationEnabled())
             locate();
