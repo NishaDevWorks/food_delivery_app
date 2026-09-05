@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, Download } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fetchCloudOrders, loadOrders } from "@/lib/orders";
-export const Route = createFileRoute("/invoice/$i")({
+export const Route = createFileRoute("/invoice/$id")({
     head: () => ({ meta: [{ title: "Invoice – QuickBite" }] }),
     component: InvoicePage,
     notFoundComponent: () => <div className="p-8 text-center">Invoice not found. <Link to="/invoices" className="text-violet-600 underline">Back</Link></div>,
