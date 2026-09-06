@@ -103,6 +103,12 @@ function CartPage() {
                 orderInfo = await createRazorpayOrder({
                     data: { amount: grand, receipt: `qb_${Date.now()}` },
                 });
+            if (!orderInfo?.configured) {
+                console.info("Razorpay credentials are not configured — using demo checkout");
+                setPaying(false);
+                setMockOpen(true);
+                return;
+            }
             }
             catch (e) {
                 // Fallback to demo checkout when keys are missing/invalid
