@@ -49,6 +49,7 @@ function TrackPage() {
     const [reviewed, setReviewed] = useState(false);
     const [activeOrder, setActiveOrder] = useState(null);
     const [liveConnected, setLiveConnected] = useState(false);
+    const [mapReady, setMapReady] = useState(false);
     // Derive a deterministic demo restaurant location near the customer's real location.
     useEffect(() => {
         if (!customer) {
@@ -153,6 +154,7 @@ function TrackPage() {
                 weight: 5,
                 opacity: 0.9,
             });
+            setMapReady(true);
             interval = setInterval(() => {
                 setProgress((p) => {
                     if (!startRef.current || !endRef.current)
@@ -184,12 +186,13 @@ function TrackPage() {
                 mapInstance.current.remove();
                 mapInstance.current = null;
             }
+            setMapReady(false);
         };
     }, []);
     // Update map view, markers and route whenever the user's real location (or the derived restaurant point) changes.
     useEffect(() => {
         const map = mapInstance.current;
-        if (!map)
+        if (!map || !mapReady)
             return;
         if (customer && restaurant) {
             startRef.current = restaurant;
@@ -210,7 +213,7 @@ function TrackPage() {
         else {
             map.setView(INDIA_CENTER, 5);
         }
-    }, [customer, restaurant]);
+    }, [customer, restaurant, mapReady]);
     // When delivered, update order status + prompt review once
     useEffect(() => {
         if (stepIdx === 3 && activeOrder && activeOrder.status !== "delivered") {
