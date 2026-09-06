@@ -38,7 +38,7 @@ function TrackPage() {
     const traveledLine = useRef(null);
     const startRef = useRef(null);
     const endRef = useRef(null);
-    const location = useCurrentLocationLabel();
+    const location = useCurrentLocationLabel({ live: true });
     const customer = useMemo(() => (location.coords ? [location.coords.lat, location.coords.lng] : null), [location.coords]);
     const [restaurant, setRestaurant] = useState(null);
     const [progress, setProgress] = useState(0);
@@ -50,6 +50,7 @@ function TrackPage() {
     const [activeOrder, setActiveOrder] = useState(null);
     const [liveConnected, setLiveConnected] = useState(false);
     const [mapReady, setMapReady] = useState(false);
+    const lastCustomerRef = useRef(null);
     // Derive a deterministic demo restaurant location near the customer's real location.
     useEffect(() => {
         if (!customer) {
@@ -202,17 +203,23 @@ function TrackPage() {
             courierMarker.current.setLatLng(restaurant).addTo(map);
             fullRoute.current.setLatLngs([restaurant, customer]).addTo(map);
             traveledLine.current.setLatLngs([restaurant]).addTo(map);
-            map.fitBounds([restaurant, customer], { padding: [50, 50] });
+            if (!lastCustomerRef.current) {
+                map.fitBounds([restaurant, customer], { padding: [50, 50] });
+            }
+            else {
+                map.panTo(customer, { animate: true, duration: 0.5 });
+            }
             setProgress(0);
         }
         else if (customer) {
             endRef.current = customer;
             customerMarker.current.setLatLng(customer).addTo(map);
-            map.setView(customer, 13);
+            map.setView(customer, 16, { animate: Boolean(lastCustomerRef.current) });
         }
         else {
             map.setView(INDIA_CENTER, 5);
         }
+        lastCustomerRef.current = customer;
     }, [customer, restaurant, mapReady]);
     // When delivered, update order status + prompt review once
     useEffect(() => {
@@ -255,6 +262,15 @@ function TrackPage() {
         <Link to="/home" className="absolute top-5 left-5 w-10 h-10 rounded-full bg-white/95 shadow-lg flex items-center justify-center z-[500]">
           <ArrowLeft className="w-5 h-5 text-slate-700"/>
         </Link>
+
+         {locationReady && (<div className="absolute top-5 right-5 z-[500] rounded-full bg-white/95 shadow-lg px-3 py-2 flex items-center gap-2">
+             <span className="relative flex h-2.5 w-2.5">
+               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"/>
+               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"/>
+             </span>
+             <span className="text-[11px] font-bold text-slate-700">Live location</span>
+             {location.accuracy ? <span className="text-[10px] text-slate-400">±{Math.round(location.accuracy)}m</span> : null}
+           </div>)}
 
         {!locationReady && (<div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center text-center px-6 z-[400]">
             <div className="w-14 h-14 rounded-2xl bg-violet-100 text-violet-600 flex items-center justify-center mb-3">
