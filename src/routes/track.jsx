@@ -49,6 +49,7 @@ function TrackPage() {
     const [reviewed, setReviewed] = useState(false);
     const [activeOrder, setActiveOrder] = useState(null);
     const [liveConnected, setLiveConnected] = useState(false);
+    const [mapReady, setMapReady] = useState(false);
     // Derive a deterministic demo restaurant location near the customer's real location.
     useEffect(() => {
         if (!customer) {
@@ -105,13 +106,17 @@ function TrackPage() {
             const L = (await import("leaflet")).default;
             if (!mounted || !mapRef.current)
                 return;
+            const initialCenter = customer ?? INDIA_CENTER;
+            const initialZoom = customer ? 16 : 5;
             const map = L.map(mapRef.current, {
                 zoomControl: false,
-                attributionControl: false,
-            }).setView(INDIA_CENTER, 5);
+                attributionControl: true,
+            }).setView(initialCenter, initialZoom);
             mapInstance.current = map;
-            L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+            // OpenStreetMap tiles are public and do not require a Google Maps API key.
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
                 maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>',
             }).addTo(map);
             const customerIcon = L.divIcon({
                 className: "",
@@ -149,6 +154,7 @@ function TrackPage() {
                 weight: 5,
                 opacity: 0.9,
             });
+            setMapReady(true);
             interval = setInterval(() => {
                 setProgress((p) => {
                     if (!startRef.current || !endRef.current)
@@ -180,12 +186,13 @@ function TrackPage() {
                 mapInstance.current.remove();
                 mapInstance.current = null;
             }
+            setMapReady(false);
         };
     }, []);
     // Update map view, markers and route whenever the user's real location (or the derived restaurant point) changes.
     useEffect(() => {
         const map = mapInstance.current;
-        if (!map)
+        if (!map || !mapReady)
             return;
         if (customer && restaurant) {
             startRef.current = restaurant;
@@ -206,7 +213,7 @@ function TrackPage() {
         else {
             map.setView(INDIA_CENTER, 5);
         }
-    }, [customer, restaurant]);
+    }, [customer, restaurant, mapReady]);
     // When delivered, update order status + prompt review once
     useEffect(() => {
         if (stepIdx === 3 && activeOrder && activeOrder.status !== "delivered") {
