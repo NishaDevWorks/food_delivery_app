@@ -105,13 +105,17 @@ function TrackPage() {
             const L = (await import("leaflet")).default;
             if (!mounted || !mapRef.current)
                 return;
+            const initialCenter = customer ?? INDIA_CENTER;
+            const initialZoom = customer ? 16 : 5;
             const map = L.map(mapRef.current, {
                 zoomControl: false,
-                attributionControl: false,
-            }).setView(INDIA_CENTER, 5);
+                attributionControl: true,
+            }).setView(initialCenter, initialZoom);
             mapInstance.current = map;
-            L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+            // OpenStreetMap tiles are public and do not require a Google Maps API key.
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
                 maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>',
             }).addTo(map);
             const customerIcon = L.divIcon({
                 className: "",
