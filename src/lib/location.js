@@ -82,6 +82,17 @@ export function isLocationEnabled() {
     }
 }
 const s = (v) => (typeof v === "string" ? v.trim() : "");
+function distanceMeters(a, b) {
+    if (!a || !b)
+        return Infinity;
+    const rad = Math.PI / 180;
+    const dLat = (b.lat - a.lat) * rad;
+    const dLng = (b.lng - a.lng) * rad;
+    const lat = ((a.lat + b.lat) / 2) * rad;
+    const x = dLng * Math.cos(lat);
+    const y = dLat;
+    return Math.sqrt(x * x + y * y) * 6371000;
+}
 /** Map a Nominatim address object onto our structured components. */
 function mapParts(data) {
     const a = data?.address ?? {};
@@ -292,7 +303,7 @@ export async function searchAddress(query) {
  * Live "deliver to" info. Permission is requested ONLY when the user
  * explicitly turns location on (or when they previously turned it on).
  */
-export function useCurrentLocationLabel() {
+export function useCurrentLocationLabel({ live = false } = {}) {
     const [parts, setParts] = useState(emptyParts);
     const [manual, setManualState] = useState(emptyManual);
     const [raw, setRaw] = useState(null);
@@ -303,6 +314,9 @@ export function useCurrentLocationLabel() {
     const cancelled = useRef(false);
     const watchId = useRef(null);
     const timer = useRef(null);
+    const liveGeocodeTimer = useRef(null);
+    const liveCoords = useRef(null);
+    const lastGeocodedCoords = useRef(null);
     const persist = useCallback((p, m, rawData) => {
         try {
             localStorage.setItem(PARTS_KEY, JSON.stringify(p));
@@ -351,6 +365,10 @@ export function useCurrentLocationLabel() {
             clearTimeout(timer.current);
             timer.current = null;
         }
+        if (liveGeocodeTimer.current) {
+            clearTimeout(liveGeocodeTimer.current);
+            liveGeocodeTimer.current = null;
+        }
     }, []);
     const locate = useCallback(() => {
         if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
@@ -365,6 +383,8 @@ export function useCurrentLocationLabel() {
         setStatus("detecting");
         setError("");
         stopWatch();
+        liveCoords.current = null;
+        lastGeocodedCoords.current = null;
         // Watch briefly and keep the most accurate fix — the first GPS reading is
         // often a coarse network estimate several hundred metres off.
         let best = null;
@@ -378,6 +398,31 @@ export function useCurrentLocationLabel() {
         watchId.current = navigator.geolocation.watchPosition((pos) => {
             const acc = pos.coords.accuracy ?? 9999;
             const c = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            if (live) {
+                const previous = liveCoords.current;
+                liveCoords.current = c;
+                setCoords(c);
+                setAccuracy(acc);
+                try {
+                    localStorage.setItem(COORDS_KEY, JSON.stringify(c));
+                }
+                catch { }
+                if (!previous) {
+                    lastGeocodedCoords.current = c;
+                    void resolve(c);
+                }
+                else if (distanceMeters(lastGeocodedCoords.current, c) >= 75 && !liveGeocodeTimer.current) {
+                    liveGeocodeTimer.current = setTimeout(() => {
+                        liveGeocodeTimer.current = null;
+                        const latest = liveCoords.current;
+                        if (!latest)
+                            return;
+                        lastGeocodedCoords.current = latest;
+                        void resolve(latest);
+                    }, 1500);
+                }
+                return;
+            }
             if (!best || acc < best.acc)
                 best = { c, acc };
             // Good enough — stop early.
@@ -408,17 +453,19 @@ export function useCurrentLocationLabel() {
         }, 
         // Always force a fresh, precise fix so the address matches where the user is now.
         { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
-        // Cap the convergence window so the UI never hangs.
-        timer.current = setTimeout(() => {
-            if (best)
-                finish();
-            else {
-                stopWatch();
-                setStatus("error");
-                setError("Couldn't get a location fix. Move to an open area and try again");
-            }
-        }, 12000);
-    }, [resolve, stopWatch]);
+        if (!live) {
+            // Cap the convergence window so the UI never hangs.
+            timer.current = setTimeout(() => {
+                if (best)
+                    finish();
+                else {
+                    stopWatch();
+                    setStatus("error");
+                    setError("Couldn't get a location fix. Move to an open area and try again");
+                }
+            }, 12000);
+        }
+    }, [live, resolve, stopWatch]);
     /** Apply a manually searched address (fallback when GPS can't be used). */
     const applySuggestion = useCallback((sug) => {
         stopWatch();
